@@ -46,7 +46,11 @@ func Import() {
 		excelDatas = append(excelDatas, parsedData)
 	}
 
-	log.Println("Scanned data", len(excelDatas))
+	log.Println("Scanned data:", len(excelDatas))
+
+	for _, item := range excelDatas {
+		log.Println(item)
+	}
 }
 
 func parseRow(rows *excelize.Rows) (data *ExcelData, columnCount int, err error) {
