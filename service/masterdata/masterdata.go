@@ -3,6 +3,7 @@ package masterdata
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 )
@@ -52,9 +53,11 @@ func SearchUserByNIK(ctx context.Context, nik string) (*User, error) {
 		return nil, err
 	}
 
-	for _, v := range users.Data.Users {
-		return &v, nil
+	if len(users.Data.Users) > 0 {
+		for _, v := range users.Data.Users {
+			return &v, nil
+		}
 	}
 
-	return nil, nil
+	return nil, errors.New("nik not found")
 }
