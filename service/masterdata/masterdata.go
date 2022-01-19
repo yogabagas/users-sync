@@ -30,7 +30,7 @@ type UserData struct {
 }
 
 func SearchUserByNIK(ctx context.Context, nik string) (*User, error) {
-	url := fmt.Sprintf("https://api.sicepat.io/v1/masterdata/users?q=%s", nik)
+	url := fmt.Sprintf("https://api.s.sicepat.io/v1/masterdata/users?q=%s", nik)
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err

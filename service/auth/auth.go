@@ -50,7 +50,7 @@ func Process(ctx context.Context, userID int, nik string) (*Entity, error) {
 }
 
 func getEntity(ctx context.Context, userID int) (*Entity, error) {
-	url := fmt.Sprintf("https://api.sicepat.io/v1/auth/entity?attributes.user_id=%d", userID)
+	url := fmt.Sprintf("https://api.s.sicepat.io/v1/auth/entity?attributes.user_id=%d", userID)
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
@@ -83,7 +83,7 @@ func getEntity(ctx context.Context, userID int) (*Entity, error) {
 }
 
 func updateEntityAttr(ctx context.Context, entityID string, data *UpdateNIK) error {
-	url := fmt.Sprintf("https://api.sicepat.io/v1/auth/entity/%s/attributes", entityID)
+	url := fmt.Sprintf("https://api.s.sicepat.io/v1/auth/entity/%s/attributes", entityID)
 
 	req, err := http.NewRequest(http.MethodPut, url, ConvertStructToIOReader(data))
 	if err != nil {
