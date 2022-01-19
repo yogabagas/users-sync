@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"my-github/users-sync/service"
 )
@@ -14,6 +15,8 @@ func main() {
 	if err != nil {
 		log.Println(err)
 	}
+
+	fmt.Println("TEST")
 
 	log.Println(&userData)
 
