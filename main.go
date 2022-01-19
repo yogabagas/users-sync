@@ -18,18 +18,17 @@ func main() {
 	contextParent := context.Background()
 	ctx := context.WithValue(contextParent, "token", shared.AuthToken)
 
-	userData, err := masterdata.SearchUserByNIK("20050160")
+	userData, err := masterdata.SearchUserByNIK(ctx, "20050160")
 	if err != nil {
-		repository.InsertLog(ctx, repository.LogData{Description: shared.StatusFailInMasterData.String()})
+		go repository.InsertLog(ctx, repository.LogData{Description: shared.StatusFailInMasterData.String()})
 		return
 	}
 
 	fmt.Println("MASTER DATA", userData)
 
-	repository.InsertLog(ctx, repository.LogData{Description: shared.StatusFinished.String()})
-
 	userEntity, err := auth.Process(ctx, userData.ID, userData.NIK)
 	if err != nil {
+		go repository.InsertLog(ctx, repository.LogData{Description: shared.StatusFailInAuth.String()})
 		return
 	}
 
@@ -39,11 +38,14 @@ func main() {
 		UserID: "83233",
 	})
 	if err != nil {
+		go repository.InsertLog(ctx, repository.LogData{Description: shared.StatusFailInAuthz.String()})
 		log.Println(err)
 	}
 
 	fmt.Println("AUTHORIZATION", userAuthz)
 
 	log.Println(&userAuthz)
+
+	go repository.InsertLog(ctx, repository.LogData{Description: shared.StatusFinished.String()})
 
 }

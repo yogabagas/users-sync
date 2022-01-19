@@ -1,9 +1,9 @@
 package masterdata
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"my-github/users-sync/shared"
 	"net/http"
 )
 
@@ -29,13 +29,13 @@ type UserData struct {
 	Data UserResponse `json:"data"`
 }
 
-func SearchUserByNIK(nik string) (*User, error) {
+func SearchUserByNIK(ctx context.Context, nik string) (*User, error) {
 	url := fmt.Sprintf("https://api.sicepat.io/v1/masterdata/users?q=%s", nik)
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", shared.MasterDataToken)
+	req.Header.Set("Authorization", ctx.Value("token").(string))
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
