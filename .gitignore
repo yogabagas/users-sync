@@ -7,3 +7,5 @@ users-sync
 /vendor
 docs/
 .vscode
+
+*.xlsx
