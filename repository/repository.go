@@ -30,3 +30,21 @@ func CreateOrUpdate(ctx context.Context, data *UserData) {
 		log.Println(err.Error())
 	}
 }
+
+func ReadFromLocalDB(ctx context.Context, limit, skip int64) (resp []UserData, err error) {
+	collection := config.Database.Collection("users")
+
+	filter := bson.D{{"status", bson.D{{"$ne", 2}}}}
+	optionFind := options.Find().SetLimit(limit).SetSkip(skip)
+
+	cur, err := collection.Find(ctx, filter, optionFind)
+	if err != nil {
+		return
+	}
+
+	if err = cur.All(ctx, &resp); err != nil {
+		return
+	}
+
+	return
+}

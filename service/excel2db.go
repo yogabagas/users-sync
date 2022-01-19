@@ -18,7 +18,7 @@ type ExcelData struct {
 }
 
 func Import() {
-	xlsx, err := excelize.OpenFile("hpan-20220119.xlsx")
+	xlsx, err := excelize.OpenFile("role_HR_performa_appraisal_19012021219.xlsx")
 	if err != nil {
 		log.Println(err)
 	}
@@ -50,6 +50,7 @@ func Import() {
 		}
 
 		excelDatas = append(excelDatas, parsedData)
+
 	}
 
 	log.Println("Scanned data:", len(excelDatas))
