@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"my-github/users-sync/config"
 	"my-github/users-sync/repository"
 	"my-github/users-sync/service"
@@ -56,7 +57,7 @@ func main() {
 	//if err != nil {
 	//	log.Println(err)
 	//}
-	// worker(ctx, 501, 1000)
+	worker(ctx, 0, 5)
 
 	repository.UpdateStatus(ctx, repository.LogData{Description: shared.StatusFinished.String()})
 	// fmt
@@ -104,8 +105,10 @@ func worker(ctx context.Context, indexFrom, indexTo int) error {
 				fmt.Println(usersData)
 
 				if len(usersData.Data.Users) > 0 {
+
 					roles := strings.Split(v.Role, ",")
 					for _, role := range roles {
+						log.Println(v.NIK, role)
 						clientRoleData, err := authz.AuthzGetClientRoleID(ctx, &authz.Authz{
 							ClientName: "hr",
 							RoleName:   role,
@@ -123,7 +126,7 @@ func worker(ctx context.Context, indexFrom, indexTo int) error {
 						fmt.Println(clientRoleData)
 
 						if err = authz.AuthzInsertUserRoles(ctx, &authz.Authz{
-							RoleName: v.Role,
+							RoleName: role,
 						}, &authz.ClientRoleData{
 							Data: clientRoleData.Data,
 						}, &authz.UserData{
@@ -139,6 +142,7 @@ func worker(ctx context.Context, indexFrom, indexTo int) error {
 					}
 
 				} else {
+					log.Println("ELSE")
 					err = authz.AuthzInsertUser(ctx, &authz.Authz{
 						UserID: fmt.Sprint(masterDataUsers.ID),
 					})
@@ -163,33 +167,35 @@ func worker(ctx context.Context, indexFrom, indexTo int) error {
 					}
 
 					if len(usersData.Data.Users) > 0 {
-
-						clientRoleData, err := authz.AuthzGetClientRoleID(ctx, &authz.Authz{
-							ClientName: "HR",
-							RoleName:   v.Role,
-						})
-						if err != nil {
-							repository.UpdateStatus(ctx, repository.LogData{
-								NIK:         masterDataUsers.NIK,
-								Status:      int(shared.StatusFailInAuthz),
-								Description: shared.StatusFailInAuthz.String(),
+						roles := strings.Split(v.Role, ",")
+						for _, role := range roles {
+							clientRoleData, err := authz.AuthzGetClientRoleID(ctx, &authz.Authz{
+								ClientName: "HR",
+								RoleName:   role,
 							})
-							return err
-						}
+							if err != nil {
+								repository.UpdateStatus(ctx, repository.LogData{
+									NIK:         masterDataUsers.NIK,
+									Status:      int(shared.StatusFailInAuthz),
+									Description: shared.StatusFailInAuthz.String(),
+								})
+								return err
+							}
 
-						if err = authz.AuthzInsertUserRoles(ctx, &authz.Authz{
-							RoleName: v.Role,
-						}, &authz.ClientRoleData{
-							Data: clientRoleData.Data,
-						}, &authz.UserData{
-							Data: usersData.Data,
-						}); err != nil {
-							repository.UpdateStatus(ctx, repository.LogData{
-								NIK:         masterDataUsers.NIK,
-								Status:      int(shared.StatusFailInAuthz),
-								Description: shared.StatusFailInAuthz.String(),
-							})
-							return err
+							if err = authz.AuthzInsertUserRoles(ctx, &authz.Authz{
+								RoleName: role,
+							}, &authz.ClientRoleData{
+								Data: clientRoleData.Data,
+							}, &authz.UserData{
+								Data: usersData.Data,
+							}); err != nil {
+								repository.UpdateStatus(ctx, repository.LogData{
+									NIK:         masterDataUsers.NIK,
+									Status:      int(shared.StatusFailInAuthz),
+									Description: shared.StatusFailInAuthz.String(),
+								})
+								return err
+							}
 						}
 					}
 				}

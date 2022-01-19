@@ -36,9 +36,9 @@ func ReadFromLocalDB(ctx context.Context, limit, skip int64) (resp []UserData, e
 	collection := config.Database.Collection("usersTest")
 
 	filter := bson.D{{"status", 0}}
-	optionFind := options.Find().SetLimit(limit).SetSkip(skip)
+	// optionFind := options.Find().SetLimit(limit).SetSkip(skip)
 
-	cur, err := collection.Find(ctx, filter, optionFind)
+	cur, err := collection.Find(ctx, filter)
 	if err != nil {
 		return
 	}

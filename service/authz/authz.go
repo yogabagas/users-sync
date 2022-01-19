@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"gitlab.sicepat.tech/platform/golib/log"
 )
 
 type Authz struct {
@@ -181,6 +183,10 @@ func AuthzInsertUserRoles(ctx context.Context, req *Authz, clientRoleData *Clien
 		clientRoleID = v.ID
 	}
 
+	// log.Printf("%+v", userData)
+
+	// var request *InputUserRole
+	// for _, user := range userData.Data.Users {
 	request := &InputUserRole{
 		ID: userData.Data.Users[0].ID,
 		Input: []*UserRoles{
@@ -190,6 +196,9 @@ func AuthzInsertUserRoles(ctx context.Context, req *Authz, clientRoleData *Clien
 			},
 		},
 	}
+	// }
+
+	log.Printf("%+v", request)
 
 	toByte, _ := json.Marshal(request)
 
