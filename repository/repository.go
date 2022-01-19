@@ -20,15 +20,16 @@ func UpdateStatus(ctx context.Context, data LogData) {
 	}
 }
 
-func CreateOrUpdate(ctx context.Context, data *UserData) {
+func CreateOrUpdate(ctx context.Context, data *UserData) error {
 	collection := config.Database.Collection("usersTest")
 	opts := options.Update().SetUpsert(true)
 	filter := bson.D{{"nik", data.NIK}}
 	update := bson.D{{"$set", bson.D{{"name", data.Name}, {"role", data.Role}, {"directorate", data.Directorate}, {"status", data.Status}, {"description", data.Description}, {"created_at", data.CreatedAt}, {"updated_at", data.UpdatedAt}}}}
 	_, err := collection.UpdateOne(ctx, filter, update, opts)
 	if err != nil {
-		log.Println(err.Error())
+		return err
 	}
+	return nil
 }
 
 func ReadFromLocalDB(ctx context.Context, limit, skip int64) (resp []UserData, err error) {

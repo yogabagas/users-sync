@@ -3,8 +3,10 @@ package service
 import (
 	"context"
 	"fmt"
+	"math"
 	"my-github/users-sync/repository"
 	"my-github/users-sync/shared"
+	"my-github/users-sync/taskworker"
 	"time"
 
 	"github.com/xuri/excelize/v2"
@@ -56,23 +58,77 @@ func Import() {
 		excelDatas = append(excelDatas, parsedData)
 
 	}
+	log.Println("Total Scanned Rows:", len(excelDatas))
 
-	log.Println("Scanned data:", len(excelDatas))
-
-	for _, item := range excelDatas {
-		data := &repository.UserData{
-			NIK:         item.Nik,
-			Name:        item.Name,
-			Role:        item.Role,
-			Directorate: item.Directorate,
-			Status:      int(shared.StatusImported),
-			Description: shared.StatusImported.String(),
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
-		}
-		repository.CreateOrUpdate(context.Background(), data)
-		log.Println(item)
+	process := &ImportProcess{
+		SuccessCount: 0,
+		FailedCount:  0,
 	}
+	start := time.Now()
+	processImport(context.Background(), process, excelDatas)
+	duration := time.Since(start)
+	log.Infoln("Done in:", int(math.Ceil(duration.Seconds())), "seconds")
+	log.Infoln("Summary count success:", process.SuccessCount, "failed:", process.FailedCount)
+
+	// for _, item := range excelDatas {
+	// 	data := &repository.UserData{
+	// 		NIK:         item.Nik,
+	// 		Name:        item.Name,
+	// 		Role:        item.Role,
+	// 		Directorate: item.Directorate,
+	// 		Status:      int(shared.StatusImported),
+	// 		Description: shared.StatusImported.String(),
+	// 		CreatedAt:   time.Now(),
+	// 		UpdatedAt:   time.Now(),
+	// 	}
+	// 	repository.CreateOrUpdate(context.Background(), data)
+	// 	log.Println(item)
+	// }
+}
+
+func processImport(ctx context.Context, process *ImportProcess, excelDatas []*ExcelData) {
+	maxWorker := 10
+	worker := taskworker.NewSingleTaskWorker(ctx, uint8(maxWorker), task, len(excelDatas))
+	for _, excelData := range excelDatas {
+		worker.Do(excelData)
+	}
+
+	results := worker.Results()
+	for _, result := range results {
+		if result.Err != nil {
+			process.FailedCount++
+		} else {
+			process.SuccessCount++
+		}
+	}
+}
+
+func task(ctx context.Context, data interface{}) (interface{}, error) {
+	excelData, ok := data.(*ExcelData)
+	if !ok {
+		return excelData, taskworker.ErrorInvalidObject
+	}
+
+	userData := &repository.UserData{
+		NIK:         excelData.Nik,
+		Name:        excelData.Name,
+		Role:        excelData.Role,
+		Directorate: excelData.Directorate,
+		Status:      int(shared.StatusImported),
+		Description: shared.StatusImported.String(),
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+	err := repository.CreateOrUpdate(ctx, userData)
+	if err != nil {
+		return excelData, err
+	}
+	return excelData, nil
+}
+
+type ImportProcess struct {
+	SuccessCount int64
+	FailedCount  int64
 }
 
 func parseRow(rows *excelize.Rows) (data *ExcelData, columnCount int, err error) {
