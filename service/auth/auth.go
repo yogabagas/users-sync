@@ -72,6 +72,7 @@ func getEntity(ctx context.Context, userID int) (*Entity, error) {
 	var entity []Entity
 	err = json.NewDecoder(resp.Body).Decode(&entity)
 	if err != nil {
+		fmt.Println("GET ENTITY")
 		return nil, err
 	}
 

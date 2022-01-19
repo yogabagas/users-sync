@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -107,7 +108,7 @@ func AuthzGetUserID(ctx context.Context, req *Authz) (userData UserData, err err
 	}
 	defer resp.Body.Close()
 
-	decodeResponse(resp.Body, &userData)
+	err = decodeResponse(resp.Body, &userData)
 
 	return
 
@@ -117,7 +118,10 @@ func AuthzGetClientRoleID(ctx context.Context, req *Authz) (clientRoleData Clien
 
 	client := &http.Client{}
 
-	httpReq, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/client-roles?client=%s&role=%s", endpointAuthzStaging, clientApp, req.RoleName), nil)
+	req.RoleName = strings.ReplaceAll(req.RoleName, " ", "%20")
+	url := fmt.Sprintf("%s/client-roles?client=%s&role=%s", endpointAuthzStaging, clientApp, req.RoleName)
+	fmt.Println(url)
+	httpReq, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return
 	}
@@ -129,7 +133,7 @@ func AuthzGetClientRoleID(ctx context.Context, req *Authz) (clientRoleData Clien
 	}
 	defer resp.Body.Close()
 
-	decodeResponse(resp.Body, &clientRoleData)
+	err = decodeResponse(resp.Body, &clientRoleData)
 
 	return
 
@@ -148,8 +152,9 @@ func AuthzInsertUser(ctx context.Context, req *Authz) error {
 	toByte, _ := json.Marshal(request)
 
 	requestBody := bytes.NewBuffer(toByte)
-
-	httpReq, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/users", endpointAuthzStaging), requestBody)
+	url := fmt.Sprintf("%s/users", endpointAuthzStaging)
+	fmt.Println(url)
+	httpReq, err := http.NewRequest(http.MethodPost, url, requestBody)
 	if err != nil {
 		return err
 	}
@@ -188,7 +193,9 @@ func AuthzInsertUserRoles(ctx context.Context, req *Authz, clientRoleData *Clien
 
 	toByte, _ := json.Marshal(request)
 
-	httpReq, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/users/%s/roles", endpointAuthzStaging, userData.Data.Users[0].ID), bytes.NewBuffer(toByte))
+	url := fmt.Sprintf("%s/users/%s/roles", endpointAuthzStaging, userData.Data.Users[0].ID)
+	fmt.Println(url)
+	httpReq, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(toByte))
 	if err != nil {
 		return err
 	}
@@ -203,10 +210,9 @@ func AuthzInsertUserRoles(ctx context.Context, req *Authz, clientRoleData *Clien
 	return nil
 }
 
-func decodeResponse(b io.Reader, v interface{}) {
-
+func decodeResponse(b io.Reader, v interface{}) error {
 	if err := json.NewDecoder(b).Decode(&v); err != nil {
-		return
+		return err
 	}
-
+	return nil
 }

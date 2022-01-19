@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"my-github/users-sync/repository"
 	"my-github/users-sync/shared"
 	"time"
@@ -29,8 +30,10 @@ func Import() {
 		log.Println(err)
 	}
 
+	fmt.Println(rows)
+
 	var totalRowsScanned int64
-	var skip int64 = 2
+	var skip int64 = 1
 	var excelDatas []*ExcelData
 	for rows.Next() {
 		totalRowsScanned++
