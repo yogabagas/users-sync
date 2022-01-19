@@ -19,10 +19,10 @@ type Authz struct {
 
 type (
 	UserData struct {
-		Data *UsersResponse `json:"data"`
+		Data UsersResponse `json:"data"`
 	}
 	UsersResponse struct {
-		Users []*User `json:"users"`
+		Users []User `json:"users"`
 	}
 
 	User struct {
@@ -90,7 +90,7 @@ const (
 	endpointAuthz = "https://api.s.sicepat.io/v2/authz/management"
 )
 
-func AuthzGetUserID(ctx context.Context, req *Authz) (userData *UserData, err error) {
+func AuthzGetUserID(ctx context.Context, req *Authz) (userData UserData, err error) {
 
 	client := &http.Client{}
 
@@ -98,6 +98,7 @@ func AuthzGetUserID(ctx context.Context, req *Authz) (userData *UserData, err er
 	if err != nil {
 		return
 	}
+	httpReq.Header.Set("Authorization", ctx.Value("token").(string))
 
 	resp, err := client.Do(httpReq)
 	if err != nil {
@@ -105,15 +106,13 @@ func AuthzGetUserID(ctx context.Context, req *Authz) (userData *UserData, err er
 	}
 	defer resp.Body.Close()
 
-	newData := new(UserData)
-
-	decodeResponse(resp.Body, newData)
+	decodeResponse(resp.Body, &userData)
 
 	return
 
 }
 
-func AuthzGetClientRoleID(ctx context.Context, req *Authz) (clientRoleData *ClientRoleData, err error) {
+func AuthzGetClientRoleID(ctx context.Context, req *Authz) (clientRoleData ClientRoleData, err error) {
 
 	client := &http.Client{}
 
@@ -121,6 +120,7 @@ func AuthzGetClientRoleID(ctx context.Context, req *Authz) (clientRoleData *Clie
 	if err != nil {
 		return
 	}
+	httpReq.Header.Set("Authorization", ctx.Value("token").(string))
 
 	resp, err := client.Do(httpReq)
 	if err != nil {
@@ -128,9 +128,7 @@ func AuthzGetClientRoleID(ctx context.Context, req *Authz) (clientRoleData *Clie
 	}
 	defer resp.Body.Close()
 
-	newData := new(ClientRoleData)
-
-	decodeResponse(resp.Body, newData)
+	decodeResponse(resp.Body, &clientRoleData)
 
 	return
 
@@ -193,6 +191,7 @@ func AuthzInsertUserRoles(ctx context.Context, req *Authz, clientRoleData *Clien
 	if err != nil {
 		return err
 	}
+	httpReq.Header.Set("Authorization", ctx.Value("token").(string))
 
 	resp, err := client.Do(httpReq)
 	if err != nil {

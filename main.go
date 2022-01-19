@@ -8,13 +8,13 @@ import (
 
 func main() {
 
-	resp, err := service.AuthzGetUserID(context.Background(), &service.Authz{
+	userData, err := service.AuthzGetUserID(context.Background(), &service.Authz{
 		UserID: "83233",
 	})
 	if err != nil {
 		log.Println(err)
 	}
 
-	log.Println(resp)
+	log.Println(&userData)
 
 }
