@@ -13,7 +13,7 @@ import (
 func UpdateStatus(ctx context.Context, data LogData) {
 	collection := config.Database.Collection("usersTest")
 	filter := bson.M{"nik": data.NIK}
-	update := bson.M{"$set": bson.M{"status": data.Status, "description": data.Description, "updatedAt": time.Now()}}
+	update := bson.M{"$set": bson.M{"status": data.Status, "description": data.Description, "updated_at": time.Now()}}
 	_, err := collection.UpdateOne(ctx, filter, update)
 	if err != nil {
 		log.Println(err.Error())

@@ -48,6 +48,7 @@ func SearchUserByNIK(ctx context.Context, nik string) (*User, error) {
 	var users UserData
 	err = json.NewDecoder(resp.Body).Decode(&users)
 	if err != nil {
+		fmt.Println("SearchUserByNIK")
 		return nil, err
 	}
 
