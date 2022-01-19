@@ -62,8 +62,7 @@ func AuthzGetUserID(req *Authz) (data *Data, err error) {
 
 }
 
-
-func AuthzGetClientRoleID
+// func AuthzGetClientRoleID
 
 func decodeResponse(b io.Reader, v interface{}) {
 
