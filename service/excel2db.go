@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"my-github/users-sync/repository"
 	"my-github/users-sync/shared"
-	"strings"
 	"time"
 
 	"github.com/360EntSecGroup-Skylar/excelize"
@@ -15,7 +14,7 @@ import (
 type ExcelData struct {
 	Nik         string
 	Name        string
-	Role        []string
+	Role        string
 	Directorate string
 }
 
@@ -24,18 +23,20 @@ const (
 )
 
 func Import() {
-	xlsx, err := excelize.OpenFile("./hpan-20220119.xlsx")
+	xlsx, err := excelize.OpenFile("file1.xlsx")
 	if err != nil {
 		log.Println(err)
 	}
 
 	rows := make([]ExcelData, 0)
 
+	log.Println(xlsx.GetRows(sheetOne))
+
 	for i := 2; i <= len(xlsx.GetRows(sheetOne)); i++ {
 		row := ExcelData{
 			Nik:         xlsx.GetCellValue(sheetOne, fmt.Sprintf("A%d", i)),
 			Name:        xlsx.GetCellValue(sheetOne, fmt.Sprintf("B%d", i)),
-			Role:        strings.Split(xlsx.GetCellValue(sheetOne, fmt.Sprintf("C%d", i)), "/"),
+			Role:        xlsx.GetCellValue(sheetOne, fmt.Sprintf("C%d", i)),
 			Directorate: xlsx.GetCellValue(sheetOne, fmt.Sprintf("D%d", i)),
 		}
 		rows = append(rows, row)
