@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"my-github/users-sync/repository"
+	"my-github/users-sync/shared"
 	"time"
 
 	"github.com/xuri/excelize/v2"
@@ -19,13 +20,13 @@ type ExcelData struct {
 func Import() {
 	xlsx, err := excelize.OpenFile("hpan-20220119.xlsx")
 	if err != nil {
-		log.Errorln(err)
+		log.Println(err)
 	}
 
 	sheetName := xlsx.GetSheetName(0)
 	rows, err := xlsx.Rows(sheetName)
 	if err != nil {
-		log.Errorln(err)
+		log.Println(err)
 	}
 
 	var totalRowsScanned int64
@@ -59,8 +60,8 @@ func Import() {
 			Name:        item.Name,
 			Role:        item.Role,
 			Directorate: item.Directorate,
-			Status:      1,
-			Description: "",
+			Status:      int(shared.StatusImported),
+			Description: shared.StatusImported.String(),
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
 		}

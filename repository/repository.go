@@ -4,15 +4,17 @@ import (
 	"context"
 	"log"
 	"my-github/users-sync/config"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func InsertLog(ctx context.Context, data LogData) {
+func UpdateStatus(ctx context.Context, data LogData) {
 	collection := config.Database.Collection("users")
-
-	_, err := collection.InsertOne(ctx, data)
+	filter := bson.M{"nik": data.NIK}
+	update := bson.M{"$set": bson.M{"status": data.Status, "description": data.Description, "updatedAt": time.Now()}}
+	_, err := collection.UpdateOne(ctx, filter, update)
 	if err != nil {
 		log.Println(err.Error())
 	}

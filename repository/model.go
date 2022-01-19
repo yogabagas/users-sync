@@ -3,6 +3,8 @@ package repository
 import "time"
 
 type LogData struct {
+	NIK         string `bson:"nik"`
+	Status      int    `bson:"status"`
 	Description string `bson:"description"`
 }
 
