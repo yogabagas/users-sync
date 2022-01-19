@@ -33,12 +33,13 @@ func Import() {
 	fmt.Println(rows)
 
 	var totalRowsScanned int64
-	var skip int64 = 1
+	var skip int64 = 2
 	var excelDatas []*ExcelData
 	for rows.Next() {
 		totalRowsScanned++
 		if totalRowsScanned < skip {
-			log.Println("skip header")
+			columns, _ := rows.Columns()
+			log.WithFields(log.Fields{"header": columns}).Infoln("[Import User] check header")
 			continue
 		}
 
