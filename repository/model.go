@@ -11,7 +11,7 @@ type LogData struct {
 type UserData struct {
 	NIK         string    `bson:"nik"`
 	Name        string    `bson:"name"`
-	Role        string    `bson:"role"`
+	Role        []string  `bson:"role"`
 	Directorate string    `bson:"directorate"`
 	Status      int       `bson:"status"`
 	Description string    `bson:"description"`
