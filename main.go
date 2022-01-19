@@ -34,8 +34,8 @@ func main() {
 
 	fmt.Println("AUTHENTICATION", userEntity)
 
-	userAuthz, err := authz.AuthzGetUserID(context.Background(), &authz.Authz{
-		UserID: "83233",
+	userAuthz, err := authz.AuthzGetUserID(ctx, &authz.Authz{
+		UserID: fmt.Sprint(userData.ID),
 	})
 	if err != nil {
 		go repository.InsertLog(ctx, repository.LogData{Description: shared.StatusFailInAuthz.String()})

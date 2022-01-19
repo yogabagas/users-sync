@@ -86,15 +86,16 @@ type (
 )
 
 const (
-	clientApp     = "hr"
-	endpointAuthz = "https://api.s.sicepat.io/v2/authz/management"
+	clientApp            = "hr"
+	endpointAuthzStaging = "https://api.s.sicepat.io/v2/authz/management"
+	endpointAuthzProd    = "https://api.sicepat.io/v2/authz/management"
 )
 
 func AuthzGetUserID(ctx context.Context, req *Authz) (userData UserData, err error) {
 
 	client := &http.Client{}
 
-	httpReq, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/users?userID=%s", endpointAuthz, req.UserID), nil)
+	httpReq, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/users?userID=%s", endpointAuthzProd, req.UserID), nil)
 	if err != nil {
 		return
 	}
@@ -116,7 +117,7 @@ func AuthzGetClientRoleID(ctx context.Context, req *Authz) (clientRoleData Clien
 
 	client := &http.Client{}
 
-	httpReq, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/client-roles?client=%s&role=%s", endpointAuthz, clientApp, req.RoleName), nil)
+	httpReq, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/client-roles?client=%s&role=%s", endpointAuthzProd, clientApp, req.RoleName), nil)
 	if err != nil {
 		return
 	}
@@ -148,7 +149,7 @@ func AuthzInsertUser(ctx context.Context, req *Authz) error {
 
 	requestBody := bytes.NewBuffer(toByte)
 
-	httpReq, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/users", endpointAuthz), requestBody)
+	httpReq, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/users", endpointAuthzProd), requestBody)
 	if err != nil {
 		return err
 	}
@@ -187,7 +188,7 @@ func AuthzInsertUserRoles(ctx context.Context, req *Authz, clientRoleData *Clien
 
 	toByte, _ := json.Marshal(request)
 
-	httpReq, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/users/%s/roles", endpointAuthz, userData.Data.Users[0].ID), bytes.NewBuffer(toByte))
+	httpReq, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/users/%s/roles", endpointAuthzProd, userData.Data.Users[0].ID), bytes.NewBuffer(toByte))
 	if err != nil {
 		return err
 	}
