@@ -1,0 +1,9 @@
+.DS_Store
+config.json
+
+# binaries
+users-sync
+
+/vendor
+docs/
+.vscode
