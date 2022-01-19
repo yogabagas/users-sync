@@ -1,18 +1,23 @@
 package service
 
 import (
+	"context"
+	"my-github/users-sync/repository"
+	"time"
+
 	"github.com/xuri/excelize/v2"
 	"gitlab.sicepat.tech/platform/golib/log"
 )
 
 type ExcelData struct {
-	Nik  string
-	Name string
-	Role string
+	Nik         string
+	Name        string
+	Role        string
+	Directorate string
 }
 
 func Import() {
-	xlsx, err := excelize.OpenFile("file.xlsx")
+	xlsx, err := excelize.OpenFile("hpan-20220119.xlsx")
 	if err != nil {
 		log.Errorln(err)
 	}
@@ -38,7 +43,7 @@ func Import() {
 			log.Errorln(err)
 		}
 
-		if parsedData.Nik == "" || columnCount < 3 {
+		if parsedData.Nik == "" || columnCount < 4 {
 			log.Print("end of file")
 			break
 		}
@@ -49,6 +54,17 @@ func Import() {
 	log.Println("Scanned data:", len(excelDatas))
 
 	for _, item := range excelDatas {
+		data := &repository.UserData{
+			NIK:         item.Nik,
+			Name:        item.Name,
+			Role:        item.Role,
+			Directorate: item.Directorate,
+			Status:      1,
+			Description: "",
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		}
+		repository.CreateOrUpdate(context.Background(), data)
 		log.Println(item)
 	}
 }
@@ -61,15 +77,16 @@ func parseRow(rows *excelize.Rows) (data *ExcelData, columnCount int, err error)
 	}
 
 	length := len(columns)
-	if length < 3 {
-		log.Println("column number should be 3")
+	if length < 4 {
+		log.Println("column number should be 4")
 		return &ExcelData{}, length, nil
 	}
 
 	data = &ExcelData{
-		Nik:  columns[0],
-		Name: columns[1],
-		Role: columns[2],
+		Nik:         columns[0],
+		Name:        columns[1],
+		Role:        columns[2],
+		Directorate: columns[3],
 	}
 	return data, length, nil
 }
