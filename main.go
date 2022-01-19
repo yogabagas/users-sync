@@ -59,9 +59,6 @@ func main() {
 	//}
 	worker(ctx, 0, 5)
 
-	repository.UpdateStatus(ctx, repository.LogData{Description: shared.StatusFinished.String()})
-	// fmt
-
 }
 
 func worker(ctx context.Context, indexFrom, indexTo int) error {
@@ -74,6 +71,11 @@ func worker(ctx context.Context, indexFrom, indexTo int) error {
 	for _, v := range resp {
 		masterDataUsers, err := masterdata.SearchUserByNIK(ctx, v.NIK)
 		if err != nil {
+			repository.UpdateStatus(ctx, repository.LogData{
+				NIK:         v.NIK,
+				Status:      int(shared.StatusFailInMasterData),
+				Description: shared.StatusFailInMasterData.String(),
+			})
 			return err
 		}
 
@@ -81,7 +83,7 @@ func worker(ctx context.Context, indexFrom, indexTo int) error {
 			entityUsers, err := auth.Process(ctx, masterDataUsers.ID, masterDataUsers.NIK)
 			if err != nil {
 				repository.UpdateStatus(ctx, repository.LogData{
-					NIK:         masterDataUsers.NIK,
+					NIK:         v.NIK,
 					Status:      int(shared.StatusFailInAuth),
 					Description: shared.StatusFailInAuth.String(),
 				})
@@ -89,20 +91,18 @@ func worker(ctx context.Context, indexFrom, indexTo int) error {
 			}
 
 			if entityUsers != nil {
+
 				usersData, err := authz.AuthzGetUserID(ctx, &authz.Authz{
 					UserID: fmt.Sprint(masterDataUsers.ID),
 				})
 				if err != nil {
 					repository.UpdateStatus(ctx, repository.LogData{
-						NIK:         masterDataUsers.NIK,
+						NIK:         v.NIK,
 						Status:      int(shared.StatusFailInAuthz),
 						Description: shared.StatusFailInAuthz.String(),
 					})
 					return err
 				}
-
-				fmt.Println("USER DATA")
-				fmt.Println(usersData)
 
 				if len(usersData.Data.Users) > 0 {
 
@@ -115,15 +115,12 @@ func worker(ctx context.Context, indexFrom, indexTo int) error {
 						})
 						if err != nil {
 							repository.UpdateStatus(ctx, repository.LogData{
-								NIK:         masterDataUsers.NIK,
+								NIK:         v.NIK,
 								Status:      int(shared.StatusFailInAuthz),
 								Description: shared.StatusFailInAuthz.String(),
 							})
 							return err
 						}
-
-						fmt.Println("CLIENT ROLE")
-						fmt.Println(clientRoleData)
 
 						if err = authz.AuthzInsertUserRoles(ctx, &authz.Authz{
 							RoleName: role,
@@ -133,7 +130,7 @@ func worker(ctx context.Context, indexFrom, indexTo int) error {
 							Data: usersData.Data,
 						}); err != nil {
 							repository.UpdateStatus(ctx, repository.LogData{
-								NIK:         masterDataUsers.NIK,
+								NIK:         v.NIK,
 								Status:      int(shared.StatusFailInAuthz),
 								Description: shared.StatusFailInAuthz.String(),
 							})
@@ -142,24 +139,25 @@ func worker(ctx context.Context, indexFrom, indexTo int) error {
 					}
 
 				} else {
-					log.Println("ELSE")
+
 					err = authz.AuthzInsertUser(ctx, &authz.Authz{
 						UserID: fmt.Sprint(masterDataUsers.ID),
 					})
 					if err != nil {
 						repository.UpdateStatus(ctx, repository.LogData{
-							NIK:         masterDataUsers.NIK,
+							NIK:         v.NIK,
 							Status:      int(shared.StatusFailInAuthz),
 							Description: shared.StatusFailInAuthz.String(),
 						})
 						return err
 					}
+
 					usersData, err := authz.AuthzGetUserID(ctx, &authz.Authz{
 						UserID: fmt.Sprint(masterDataUsers.ID),
 					})
 					if err != nil {
 						repository.UpdateStatus(ctx, repository.LogData{
-							NIK:         masterDataUsers.NIK,
+							NIK:         v.NIK,
 							Status:      int(shared.StatusFailInAuthz),
 							Description: shared.StatusFailInAuthz.String(),
 						})
@@ -169,13 +167,14 @@ func worker(ctx context.Context, indexFrom, indexTo int) error {
 					if len(usersData.Data.Users) > 0 {
 						roles := strings.Split(v.Role, ",")
 						for _, role := range roles {
+
 							clientRoleData, err := authz.AuthzGetClientRoleID(ctx, &authz.Authz{
 								ClientName: "HR",
 								RoleName:   role,
 							})
 							if err != nil {
 								repository.UpdateStatus(ctx, repository.LogData{
-									NIK:         masterDataUsers.NIK,
+									NIK:         v.NIK,
 									Status:      int(shared.StatusFailInAuthz),
 									Description: shared.StatusFailInAuthz.String(),
 								})
@@ -190,7 +189,7 @@ func worker(ctx context.Context, indexFrom, indexTo int) error {
 								Data: usersData.Data,
 							}); err != nil {
 								repository.UpdateStatus(ctx, repository.LogData{
-									NIK:         masterDataUsers.NIK,
+									NIK:         v.NIK,
 									Status:      int(shared.StatusFailInAuthz),
 									Description: shared.StatusFailInAuthz.String(),
 								})
@@ -201,6 +200,11 @@ func worker(ctx context.Context, indexFrom, indexTo int) error {
 				}
 			}
 		}
+		repository.UpdateStatus(ctx, repository.LogData{
+			NIK:         v.NIK,
+			Status:      int(shared.StatusFinished),
+			Description: shared.StatusFinished.String(),
+		})
 	}
 	return nil
 }
