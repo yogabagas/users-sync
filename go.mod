@@ -1,3 +1,3 @@
-module github.com/yogabagas/users-sync
+module my-github/users-sync
 
-go 1.17
+go 1.15
