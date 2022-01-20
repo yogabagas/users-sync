@@ -2,7 +2,6 @@ package config
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
@@ -26,5 +25,5 @@ func InitDB() {
 
 	Database = client.Database("hr-appraisal")
 
-	fmt.Println("database connected ...")
+	log.Println("database connected ...")
 }

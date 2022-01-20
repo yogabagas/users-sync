@@ -21,43 +21,8 @@ func main() {
 	contextParent := context.Background()
 	ctx := context.WithValue(contextParent, "token", shared.AuthToken)
 
-	// userData, err := masterdata.SearchUserByNIK(ctx, "20050160")
-	// if err != nil {
-	// 	log.Println(err)
-	// 	repository.UpdateStatus(ctx, repository.LogData{
-	// 		NIK:         userData.NIK,
-	// 		Status:      int(shared.StatusFailInMasterData),
-	// 		Description: shared.StatusFailInMasterData.String(),
-	// 	})
-	// }
-
-	// _, err = auth.Process(ctx, userData.ID, userData.NIK)
-	// if err != nil {
-	// 	log.Println(err)
-	// 	repository.UpdateStatus(ctx, repository.LogData{
-	// 		NIK:         userData.NIK,
-	// 		Status:      int(shared.StatusFailInAuth),
-	// 		Description: shared.StatusFailInAuth.String(),
-	// 	})
-	// }
-
-	// _, err = authz.AuthzGetUserID(ctx, &authz.Authz{
-	// 	UserID: fmt.Sprint(userData.ID),
-	// })
-	// if err != nil {
-	// 	log.Println(err)
-	// 	repository.UpdateStatus(ctx, repository.LogData{
-	// 		NIK:         userData.NIK,
-	// 		Status:      int(shared.StatusFailInAuthz),
-	// 		Description: shared.StatusFailInAuthz.String(),
-	// 	})
-	// }
-
-	//err := worker(ctx, 0, 1)
-	//if err != nil {
-	//	log.Println(err)
-	//}
-	worker(ctx, 0, 5)
+	go worker(ctx, 0, 5)
+	worker(ctx, 6, 10)
 
 }
 
