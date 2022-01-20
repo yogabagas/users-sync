@@ -85,6 +85,8 @@ func worker(ctx context.Context, indexFrom, indexTo int) error {
 							return err
 						}
 
+						log.Println(clientRoleData.Data.ClientRoles)
+
 						if err = authz.AuthzInsertUserRoles(ctx, &authz.Authz{
 							RoleName: role,
 						}, &authz.ClientRoleData{
