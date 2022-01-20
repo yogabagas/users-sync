@@ -67,41 +67,14 @@ func worker(ctx context.Context, indexFrom, indexTo int) error {
 				}
 
 				if len(usersData.Data.Users) > 0 {
-
-					roles := strings.Split(v.Role, ",")
-
-					var clientRoleIDs []string
-					var rolesName []string
-					for _, role := range roles {
-						clientRoleData, err := authz.AuthzGetClientRoleID(ctx, &authz.Authz{
-							ClientName: "hr",
-							RoleName:   role,
+					err = setUserRoles(ctx, v.Role, usersData.Data.Users[0].UserID)
+					if err != nil {
+						repository.UpdateStatus(ctx, repository.LogData{
+							NIK:         v.NIK,
+							Status:      int(shared.StatusFailInAuthz),
+							Description: shared.StatusFailInAuthz.String(),
 						})
-						if err != nil {
-							repository.UpdateStatus(ctx, repository.LogData{
-								NIK:         v.NIK,
-								Status:      int(shared.StatusFailInAuthz),
-								Description: shared.StatusFailInAuthz.String(),
-							})
-							return err
-						}
-						clientRoleIDs = append(clientRoleIDs, clientRoleData.Data.ClientRoles[0].ID)
-						rolesName = append(rolesName, role)
-					}
-
-					for _, role := range rolesName {
-						if err = authz.AuthzInsertUserRoles(ctx, &authz.Authz{
-							RoleName: role,
-						}, clientRoleIDs, &authz.UserData{
-							Data: usersData.Data,
-						}); err != nil {
-							repository.UpdateStatus(ctx, repository.LogData{
-								NIK:         v.NIK,
-								Status:      int(shared.StatusFailInAuthz),
-								Description: shared.StatusFailInAuthz.String(),
-							})
-							return err
-						}
+						return err
 					}
 
 				} else {
@@ -118,7 +91,7 @@ func worker(ctx context.Context, indexFrom, indexTo int) error {
 						return err
 					}
 
-					usersData, err := authz.AuthzGetUserID(ctx, &authz.Authz{
+					usersData, err = authz.AuthzGetUserID(ctx, &authz.Authz{
 						UserID: fmt.Sprint(masterDataUsers.ID),
 					})
 					if err != nil {
@@ -131,42 +104,14 @@ func worker(ctx context.Context, indexFrom, indexTo int) error {
 					}
 
 					if len(usersData.Data.Users) > 0 {
-
-						roles := strings.Split(v.Role, ",")
-
-						var clientRoleIDs []string
-						var clientRoleData authz.ClientRoleData
-						var rolesName []string
-						for _, role := range roles {
-							clientRoleData, err = authz.AuthzGetClientRoleID(ctx, &authz.Authz{
-								ClientName: "hr",
-								RoleName:   role,
+						err = setUserRoles(ctx, v.Role, usersData.Data.Users[0].UserID)
+						if err != nil {
+							repository.UpdateStatus(ctx, repository.LogData{
+								NIK:         v.NIK,
+								Status:      int(shared.StatusFailInAuthz),
+								Description: shared.StatusFailInAuthz.String(),
 							})
-							if err != nil {
-								repository.UpdateStatus(ctx, repository.LogData{
-									NIK:         v.NIK,
-									Status:      int(shared.StatusFailInAuthz),
-									Description: shared.StatusFailInAuthz.String(),
-								})
-								return err
-							}
-							clientRoleIDs = append(clientRoleIDs, clientRoleData.Data.ClientRoles[0].ID)
-							rolesName = append(rolesName, role)
-						}
-
-						for _, role := range rolesName {
-							if err = authz.AuthzInsertUserRoles(ctx, &authz.Authz{
-								RoleName: role,
-							}, clientRoleIDs, &authz.UserData{
-								Data: usersData.Data,
-							}); err != nil {
-								repository.UpdateStatus(ctx, repository.LogData{
-									NIK:         v.NIK,
-									Status:      int(shared.StatusFailInAuthz),
-									Description: shared.StatusFailInAuthz.String(),
-								})
-								return err
-							}
+							return err
 						}
 					}
 				}
@@ -178,5 +123,49 @@ func worker(ctx context.Context, indexFrom, indexTo int) error {
 			})
 		}
 	}
+	return nil
+}
+
+func setUserRoles(ctx context.Context, roleData string, userID string) error {
+	var clientRoleIDs []string
+	var clientRole []authz.ClientRole
+
+	mRoleLocal := make(map[string]string)
+
+	roles := strings.Split(roleData, ",")
+
+	for _, role := range roles {
+		role = strings.TrimSpace(role)
+		clientRoleData, err := authz.AuthzGetClientRoleID(ctx, &authz.Authz{
+			ClientName: "hr",
+			RoleName:   role,
+		})
+		if err != nil {
+			return err
+		}
+
+		if len(clientRoleData.Data.ClientRoles) > 1 {
+			clientRole = clientRoleData.Data.ClientRoles
+		} else {
+			clientRoleIDs = append(clientRoleIDs, clientRoleData.Data.ClientRoles[0].ID)
+		}
+
+		key := fmt.Sprintf("hr+%s", role)
+		mRoleLocal[key] = role
+	}
+
+	if len(clientRole) > 0 {
+		for _, cr := range clientRole {
+			key := fmt.Sprintf("%s+%s", cr.Client.Name, cr.Role.Name)
+			if _, exists := mRoleLocal[key]; exists {
+				clientRoleIDs = append(clientRoleIDs, cr.ID)
+			}
+		}
+	}
+
+	if err := authz.AuthzInsertUserRoles(ctx, clientRoleIDs, userID); err != nil {
+		return err
+	}
+
 	return nil
 }

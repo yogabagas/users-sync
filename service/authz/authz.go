@@ -126,7 +126,6 @@ func AuthzGetClientRoleID(ctx context.Context, req *Authz) (clientRoleData Clien
 
 	req.RoleName = strings.ReplaceAll(req.RoleName, " ", "%20")
 	url := fmt.Sprintf("%s/client-roles?client=%s&role=%s", endpointAuthzV2Staging, clientApp, req.RoleName)
-	fmt.Println(url)
 	httpReq, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return
@@ -159,7 +158,6 @@ func AuthzInsertUser(ctx context.Context, req *Authz) error {
 
 	requestBody := bytes.NewBuffer(toByte)
 	url := fmt.Sprintf("%s/users", endpointAuthzV2Staging)
-	fmt.Println(url)
 	httpReq, err := http.NewRequest(http.MethodPost, url, requestBody)
 	if err != nil {
 		return err
@@ -175,12 +173,12 @@ func AuthzInsertUser(ctx context.Context, req *Authz) error {
 	return nil
 }
 
-func AuthzInsertUserRoles(ctx context.Context, req *Authz, clientRoleIDs []string, userData *UserData) error {
+func AuthzInsertUserRoles(ctx context.Context, clientRoleIDs []string, userID string) error {
 
 	client := &http.Client{}
 
 	request := &InputUserRole{
-		UserID:      userData.Data.Users[0].UserID,
+		UserID:      userID,
 		ClientRoles: clientRoleIDs,
 	}
 
@@ -189,7 +187,6 @@ func AuthzInsertUserRoles(ctx context.Context, req *Authz, clientRoleIDs []strin
 	toByte, _ := json.Marshal(request)
 
 	url := fmt.Sprintf("%s/user-roles/assign", endpointAuthzV1Staging)
-	fmt.Println(url)
 	httpReq, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(toByte))
 	if err != nil {
 		log.Println("ERR", err.Error())
