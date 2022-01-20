@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"my-github/users-sync/config"
 	"my-github/users-sync/repository"
 	"my-github/users-sync/service"
@@ -70,8 +69,10 @@ func worker(ctx context.Context, indexFrom, indexTo int) error {
 				if len(usersData.Data.Users) > 0 {
 
 					roles := strings.Split(v.Role, ",")
+
+					var clientRoleIDs []string
+					var rolesName []string
 					for _, role := range roles {
-						log.Println(v.NIK, role)
 						clientRoleData, err := authz.AuthzGetClientRoleID(ctx, &authz.Authz{
 							ClientName: "hr",
 							RoleName:   role,
@@ -84,14 +85,14 @@ func worker(ctx context.Context, indexFrom, indexTo int) error {
 							})
 							return err
 						}
+						clientRoleIDs = append(clientRoleIDs, clientRoleData.Data.ClientRoles[0].ID)
+						rolesName = append(rolesName, role)
+					}
 
-						log.Println(clientRoleData.Data.ClientRoles)
-
+					for _, role := range rolesName {
 						if err = authz.AuthzInsertUserRoles(ctx, &authz.Authz{
 							RoleName: role,
-						}, &authz.ClientRoleData{
-							Data: clientRoleData.Data,
-						}, &authz.UserData{
+						}, clientRoleIDs, &authz.UserData{
 							Data: usersData.Data,
 						}); err != nil {
 							repository.UpdateStatus(ctx, repository.LogData{
@@ -130,11 +131,15 @@ func worker(ctx context.Context, indexFrom, indexTo int) error {
 					}
 
 					if len(usersData.Data.Users) > 0 {
-						roles := strings.Split(v.Role, ",")
-						for _, role := range roles {
 
-							clientRoleData, err := authz.AuthzGetClientRoleID(ctx, &authz.Authz{
-								ClientName: "HR",
+						roles := strings.Split(v.Role, ",")
+
+						var clientRoleIDs []string
+						var clientRoleData authz.ClientRoleData
+						var rolesName []string
+						for _, role := range roles {
+							clientRoleData, err = authz.AuthzGetClientRoleID(ctx, &authz.Authz{
+								ClientName: "hr",
 								RoleName:   role,
 							})
 							if err != nil {
@@ -145,12 +150,14 @@ func worker(ctx context.Context, indexFrom, indexTo int) error {
 								})
 								return err
 							}
+							clientRoleIDs = append(clientRoleIDs, clientRoleData.Data.ClientRoles[0].ID)
+							rolesName = append(rolesName, role)
+						}
 
+						for _, role := range rolesName {
 							if err = authz.AuthzInsertUserRoles(ctx, &authz.Authz{
 								RoleName: role,
-							}, &authz.ClientRoleData{
-								Data: clientRoleData.Data,
-							}, &authz.UserData{
+							}, clientRoleIDs, &authz.UserData{
 								Data: usersData.Data,
 							}); err != nil {
 								repository.UpdateStatus(ctx, repository.LogData{
@@ -164,12 +171,12 @@ func worker(ctx context.Context, indexFrom, indexTo int) error {
 					}
 				}
 			}
+			repository.UpdateStatus(ctx, repository.LogData{
+				NIK:         v.NIK,
+				Status:      int(shared.StatusFinished),
+				Description: shared.StatusFinished.String(),
+			})
 		}
-		repository.UpdateStatus(ctx, repository.LogData{
-			NIK:         v.NIK,
-			Status:      int(shared.StatusFinished),
-			Description: shared.StatusFinished.String(),
-		})
 	}
 	return nil
 }

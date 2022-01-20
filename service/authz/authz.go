@@ -45,7 +45,7 @@ type (
 		Data ClientRoleResponse `json:"data"`
 	}
 	ClientRoleResponse struct {
-		ClientRoles []*ClientRole `json:"client_roles"`
+		ClientRoles []ClientRole `json:"client_roles"`
 	}
 	ClientRole struct {
 		ID     string `json:"id"`
@@ -175,29 +175,16 @@ func AuthzInsertUser(ctx context.Context, req *Authz) error {
 	return nil
 }
 
-func AuthzInsertUserRoles(ctx context.Context, req *Authz, clientRoleData *ClientRoleData, userData *UserData) error {
+func AuthzInsertUserRoles(ctx context.Context, req *Authz, clientRoleIDs []string, userData *UserData) error {
 
 	client := &http.Client{}
 
-	var clientRoleIDs []string
-	for _, v := range clientRoleData.Data.ClientRoles {
-		if v.Client.Name != clientApp && v.Role.Name != req.RoleName {
-			continue
-		}
-		clientRoleIDs = append(clientRoleIDs, v.ID)
-	}
-
-	// log.Printf("%+v", userData)
-
-	// var request *InputUserRole
-	// for _, user := range userData.Data.Users {
 	request := &InputUserRole{
 		UserID:      userData.Data.Users[0].UserID,
 		ClientRoles: clientRoleIDs,
 	}
-	// }
 
-	log.Printf("%+v", request)
+	log.Printf("REQ: %+v", request)
 
 	toByte, _ := json.Marshal(request)
 
@@ -205,6 +192,7 @@ func AuthzInsertUserRoles(ctx context.Context, req *Authz, clientRoleData *Clien
 	fmt.Println(url)
 	httpReq, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(toByte))
 	if err != nil {
+		log.Println("ERR", err.Error())
 		return err
 	}
 	httpReq.Header.Set("Authorization", ctx.Value("token").(string))
