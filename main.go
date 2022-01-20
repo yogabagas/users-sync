@@ -21,9 +21,7 @@ func main() {
 	contextParent := context.Background()
 	ctx := context.WithValue(contextParent, "token", shared.AuthToken)
 
-	go worker(ctx, 0, 5)
-	worker(ctx, 6, 10)
-
+	worker(ctx, 0, 5)
 }
 
 func worker(ctx context.Context, indexFrom, indexTo int) error {

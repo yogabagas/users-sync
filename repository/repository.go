@@ -11,7 +11,7 @@ import (
 )
 
 func UpdateStatus(ctx context.Context, data LogData) {
-	collection := config.Database.Collection("usersTest")
+	collection := config.Database.Collection("users")
 	filter := bson.M{"nik": data.NIK}
 	update := bson.M{"$set": bson.M{"status": data.Status, "description": data.Description, "updated_at": time.Now()}}
 	_, err := collection.UpdateOne(ctx, filter, update)
@@ -20,19 +20,20 @@ func UpdateStatus(ctx context.Context, data LogData) {
 	}
 }
 
-func CreateOrUpdate(ctx context.Context, data *UserData) {
-	collection := config.Database.Collection("usersTest")
+func CreateOrUpdate(ctx context.Context, data *UserData) error {
+	collection := config.Database.Collection("users")
 	opts := options.Update().SetUpsert(true)
 	filter := bson.D{{"nik", data.NIK}}
 	update := bson.D{{"$set", bson.D{{"name", data.Name}, {"role", data.Role}, {"directorate", data.Directorate}, {"status", data.Status}, {"description", data.Description}, {"created_at", data.CreatedAt}, {"updated_at", data.UpdatedAt}}}}
 	_, err := collection.UpdateOne(ctx, filter, update, opts)
 	if err != nil {
-		log.Println(err.Error())
+		return err
 	}
+	return nil
 }
 
 func ReadFromLocalDB(ctx context.Context, limit, skip int64) (resp []UserData, err error) {
-	collection := config.Database.Collection("usersTest")
+	collection := config.Database.Collection("users")
 
 	filter := bson.D{{"status", 0}}
 	optionFind := options.Find().SetLimit(limit).SetSkip(skip)
