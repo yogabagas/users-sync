@@ -78,27 +78,31 @@ type (
 
 type (
 	InputUserRole struct {
-		ID    string       `json:"id"`
-		Input []*UserRoles `json:"input"`
+		UserID      string   `json:"user_id"`
+		Branch      string   `json:"branch_name"`
+		Roles       []string `json:"roles"`
+		ClientRoles []string `json:"client_roles"`
+		ClientID    string   `json:"-"`
 	}
 
-	UserRoles struct {
-		BranchID     string `json:"branch_id"`
-		ClientRoleID string `json:"client_role_id"`
-	}
+	// UserRoles struct {
+	// 	BranchID     string `json:"branch_id"`
+	// 	ClientRoleID string `json:"client_role_id"`
+	// }
 )
 
 const (
-	clientApp            = "hr"
-	endpointAuthzStaging = "https://api.s.sicepat.io/v2/authz/management"
-	endpointAuthzProd    = "https://api.sicepat.io/v2/authz/management"
+	clientApp              = "hr"
+	endpointAuthzV2Staging = "https://api.s.sicepat.io/v2/authz/management"
+	endpointAuthzV2Prod    = "https://api.sicepat.io/v2/authz/management"
+	endpointAuthzV1Staging = "https://api.s.sicepat.io/v1/authz"
 )
 
 func AuthzGetUserID(ctx context.Context, req *Authz) (userData UserData, err error) {
 
 	client := &http.Client{}
 
-	httpReq, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/users?userID=%s", endpointAuthzStaging, req.UserID), nil)
+	httpReq, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/users?userID=%s", endpointAuthzV2Staging, req.UserID), nil)
 	if err != nil {
 		return
 	}
@@ -121,7 +125,7 @@ func AuthzGetClientRoleID(ctx context.Context, req *Authz) (clientRoleData Clien
 	client := &http.Client{}
 
 	req.RoleName = strings.ReplaceAll(req.RoleName, " ", "%20")
-	url := fmt.Sprintf("%s/client-roles?client=%s&role=%s", endpointAuthzStaging, clientApp, req.RoleName)
+	url := fmt.Sprintf("%s/client-roles?client=%s&role=%s", endpointAuthzV2Staging, clientApp, req.RoleName)
 	fmt.Println(url)
 	httpReq, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
@@ -154,7 +158,7 @@ func AuthzInsertUser(ctx context.Context, req *Authz) error {
 	toByte, _ := json.Marshal(request)
 
 	requestBody := bytes.NewBuffer(toByte)
-	url := fmt.Sprintf("%s/users", endpointAuthzStaging)
+	url := fmt.Sprintf("%s/users", endpointAuthzV2Staging)
 	fmt.Println(url)
 	httpReq, err := http.NewRequest(http.MethodPost, url, requestBody)
 	if err != nil {
@@ -175,12 +179,12 @@ func AuthzInsertUserRoles(ctx context.Context, req *Authz, clientRoleData *Clien
 
 	client := &http.Client{}
 
-	var clientRoleID string
+	var clientRoleIDs []string
 	for _, v := range clientRoleData.Data.ClientRoles {
 		if v.Client.Name != clientApp && v.Role.Name != req.RoleName {
 			continue
 		}
-		clientRoleID = v.ID
+		clientRoleIDs = append(clientRoleIDs, v.ID)
 	}
 
 	// log.Printf("%+v", userData)
@@ -188,13 +192,8 @@ func AuthzInsertUserRoles(ctx context.Context, req *Authz, clientRoleData *Clien
 	// var request *InputUserRole
 	// for _, user := range userData.Data.Users {
 	request := &InputUserRole{
-		ID: userData.Data.Users[0].ID,
-		Input: []*UserRoles{
-			{
-				BranchID:     "4de69001-4e56-4c67-a074-0fce84bd43cd",
-				ClientRoleID: clientRoleID,
-			},
-		},
+		UserID:      userData.Data.Users[0].UserID,
+		ClientRoles: clientRoleIDs,
 	}
 	// }
 
@@ -202,9 +201,9 @@ func AuthzInsertUserRoles(ctx context.Context, req *Authz, clientRoleData *Clien
 
 	toByte, _ := json.Marshal(request)
 
-	url := fmt.Sprintf("%s/users/%s/roles", endpointAuthzStaging, userData.Data.Users[0].ID)
+	url := fmt.Sprintf("%s/users-roles/assign", endpointAuthzV1Staging)
 	fmt.Println(url)
-	httpReq, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(toByte))
+	httpReq, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(toByte))
 	if err != nil {
 		return err
 	}
