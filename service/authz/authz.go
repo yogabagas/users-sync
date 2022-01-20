@@ -188,7 +188,7 @@ func AuthzInsertUserRoles(ctx context.Context, req *Authz, clientRoleIDs []strin
 
 	toByte, _ := json.Marshal(request)
 
-	url := fmt.Sprintf("%s/users-roles/assign", endpointAuthzV1Staging)
+	url := fmt.Sprintf("%s/user-roles/assign", endpointAuthzV1Staging)
 	fmt.Println(url)
 	httpReq, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(toByte))
 	if err != nil {
