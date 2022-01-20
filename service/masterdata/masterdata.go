@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 )
 
@@ -16,10 +17,11 @@ type Data struct {
 }
 
 type User struct {
-	ID    int    `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
-	NIK   string `json:"nik"`
+	ID       int    `json:"id"`
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	NIK      string `json:"nik"`
+	Username string `json:""`
 }
 
 type UserResponse struct {
@@ -31,7 +33,7 @@ type UserData struct {
 }
 
 func SearchUserByNIK(ctx context.Context, nik string) (*User, error) {
-	url := fmt.Sprintf("https://api.s.sicepat.io/v1/masterdata/users?q=%s", nik)
+	url := fmt.Sprintf("https://api.sicepat.io/v1/masterdata/users?q=%s&limit=%d", nik, 50)
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
@@ -46,16 +48,22 @@ func SearchUserByNIK(ctx context.Context, nik string) (*User, error) {
 
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusUnauthorized {
+		return nil, errors.New("invalid token")
+	}
+
 	var users UserData
 	err = json.NewDecoder(resp.Body).Decode(&users)
 	if err != nil {
-		fmt.Println("SearchUserByNIK")
+		log.Println(err.Error())
 		return nil, err
 	}
 
 	if len(users.Data.Users) > 0 {
 		for _, v := range users.Data.Users {
-			return &v, nil
+			if v.Username == nik || v.NIK == nik {
+				return &v, nil
+			}
 		}
 	}
 

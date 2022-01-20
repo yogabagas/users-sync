@@ -96,13 +96,14 @@ const (
 	endpointAuthzV2Staging = "https://api.s.sicepat.io/v2/authz/management"
 	endpointAuthzV2Prod    = "https://api.sicepat.io/v2/authz/management"
 	endpointAuthzV1Staging = "https://api.s.sicepat.io/v1/authz"
+	endpointAuthzV1Prod    = "https://api.sicepat.io/v1/authz"
 )
 
 func AuthzGetUserID(ctx context.Context, req *Authz) (userData UserData, err error) {
 
 	client := &http.Client{}
 
-	httpReq, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/users?userID=%s", endpointAuthzV2Staging, req.UserID), nil)
+	httpReq, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/users?userID=%s", endpointAuthzV2Prod, req.UserID), nil)
 	if err != nil {
 		return
 	}
@@ -125,7 +126,7 @@ func AuthzGetClientRoleID(ctx context.Context, req *Authz) (clientRoleData Clien
 	client := &http.Client{}
 
 	req.RoleName = strings.ReplaceAll(req.RoleName, " ", "%20")
-	url := fmt.Sprintf("%s/client-roles?client=%s&role=%s", endpointAuthzV2Staging, clientApp, req.RoleName)
+	url := fmt.Sprintf("%s/client-roles?client=%s&role=%s", endpointAuthzV2Prod, clientApp, req.RoleName)
 	httpReq, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return
@@ -157,7 +158,7 @@ func AuthzInsertUser(ctx context.Context, req *Authz) error {
 	toByte, _ := json.Marshal(request)
 
 	requestBody := bytes.NewBuffer(toByte)
-	url := fmt.Sprintf("%s/users", endpointAuthzV2Staging)
+	url := fmt.Sprintf("%s/users", endpointAuthzV2Prod)
 	httpReq, err := http.NewRequest(http.MethodPost, url, requestBody)
 	if err != nil {
 		return err
@@ -186,7 +187,7 @@ func AuthzInsertUserRoles(ctx context.Context, clientRoleIDs []string, userID st
 
 	toByte, _ := json.Marshal(request)
 
-	url := fmt.Sprintf("%s/user-roles/assign", endpointAuthzV1Staging)
+	url := fmt.Sprintf("%s/user-roles/assign", endpointAuthzV1Prod)
 	httpReq, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(toByte))
 	if err != nil {
 		log.Println("ERR", err.Error())

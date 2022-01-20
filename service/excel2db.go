@@ -21,7 +21,7 @@ type ExcelData struct {
 }
 
 func Import() {
-	xlsx, err := excelize.OpenFile("hpan-20220119.xlsx")
+	xlsx, err := excelize.OpenFile("./excel/2022-01-20/Role HR Performa Appraisal 2001202209.xlsx")
 	if err != nil {
 		log.Println(err)
 	}

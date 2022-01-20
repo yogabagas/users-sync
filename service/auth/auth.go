@@ -32,15 +32,14 @@ type UpdateNIK struct {
 	NIK string `json:"nik"`
 }
 
-func Process(ctx context.Context, userID int, nik string) (*Entity, error) {
-
-	userEntity, err := getEntity(ctx, userID)
+func Process(ctx context.Context, userID int, username string) (*Entity, error) {
+	userEntity, err := getEntity(ctx, userID, username)
 	if err != nil {
 		return nil, err
 	}
 
-	if userEntity.Attributes.NIK == "" {
-		err = updateEntityAttr(ctx, userEntity.ID, &UpdateNIK{NIK: nik})
+	if userEntity != nil && userEntity.Attributes.NIK == "" {
+		err = updateEntityAttr(ctx, userEntity.ID, &UpdateNIK{NIK: username})
 		if err != nil {
 			return nil, err
 		}
@@ -49,12 +48,13 @@ func Process(ctx context.Context, userID int, nik string) (*Entity, error) {
 	return userEntity, nil
 }
 
-func getEntity(ctx context.Context, userID int) (*Entity, error) {
-	url := fmt.Sprintf("https://api.s.sicepat.io/v1/auth/entity?attributes.user_id=%d", userID)
+func getEntity(ctx context.Context, userID int, username string) (*Entity, error) {
+	url := fmt.Sprintf("https://api.sicepat.io/v1/auth/entity?attributes.user_id=%d", userID)
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
+
 	req.Header.Set("Authorization", ctx.Value("token").(string))
 
 	client := &http.Client{}
@@ -69,28 +69,38 @@ func getEntity(ctx context.Context, userID int) (*Entity, error) {
 		return nil, errors.New("invalid token")
 	}
 
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("get entity failed")
+	}
+
 	var entity []Entity
 	err = json.NewDecoder(resp.Body).Decode(&entity)
 	if err != nil {
-		fmt.Println("GET ENTITY")
 		return nil, err
 	}
 
+	if len(entity) == 0 {
+		return nil, errors.New("user not found")
+	}
+
 	for _, v := range entity {
-		return &v, nil
+		if v.Attributes.UserPassID == username {
+			return &v, nil
+		}
 	}
 
 	return nil, nil
 }
 
 func updateEntityAttr(ctx context.Context, entityID string, data *UpdateNIK) error {
-	url := fmt.Sprintf("https://api.s.sicepat.io/v1/auth/entity/%s/attributes", entityID)
+	url := fmt.Sprintf("https://api.sicepat.io/v1/auth/entity/%s/attributes", entityID)
 
 	req, err := http.NewRequest(http.MethodPut, url, ConvertStructToIOReader(data))
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Authorization", ctx.Value("token").(string))
+	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -102,6 +112,10 @@ func updateEntityAttr(ctx context.Context, entityID string, data *UpdateNIK) err
 
 	if resp.StatusCode == http.StatusUnauthorized {
 		return errors.New("invalid token")
+	}
+
+	if resp.StatusCode != http.StatusNoContent {
+		return errors.New("update nik failed")
 	}
 
 	return nil

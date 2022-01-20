@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"my-github/users-sync/config"
 	"my-github/users-sync/repository"
 	"my-github/users-sync/service"
@@ -11,6 +12,7 @@ import (
 	"my-github/users-sync/service/masterdata"
 	"my-github/users-sync/shared"
 	"strings"
+	"sync"
 )
 
 func main() {
@@ -20,36 +22,73 @@ func main() {
 	contextParent := context.Background()
 	ctx := context.WithValue(contextParent, "token", shared.AuthToken)
 
-	worker(ctx, 0, 5)
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+
+	go func() {
+		worker(ctx, 0, 300, 1)
+		wg.Done()
+	}()
+
+	go func() {
+		worker(ctx, 300, 300, 2)
+		wg.Done()
+	}()
+
+	go func() {
+		worker(ctx, 600, 300, 3)
+		wg.Done()
+	}()
+
+	go func() {
+		worker(ctx, 900, 300, 4)
+		wg.Done()
+	}()
+
+	go func() {
+		worker(ctx, 1200, 300, 5)
+		wg.Done()
+	}()
+
+	go func() {
+		worker(ctx, 1500, 300, 6)
+		wg.Done()
+	}()
+
+	wg.Wait()
+	log.Println("WORK FINISHED")
 }
 
-func worker(ctx context.Context, indexFrom, indexTo int) error {
-
+func worker(ctx context.Context, indexFrom, indexTo, no int) {
 	resp, err := repository.ReadFromLocalDB(ctx, int64(indexTo), int64(indexFrom))
 	if err != nil {
-		return err
+		log.Println(err.Error())
+		return
 	}
 
-	for _, v := range resp {
+	for index, v := range resp {
+		log.Printf("WORKER %d DATA %d", no, index)
 		masterDataUsers, err := masterdata.SearchUserByNIK(ctx, v.NIK)
 		if err != nil {
+			log.Println(err.Error())
 			repository.UpdateStatus(ctx, repository.LogData{
 				NIK:         v.NIK,
 				Status:      int(shared.StatusFailInMasterData),
-				Description: shared.StatusFailInMasterData.String(),
+				Description: fmt.Sprintf("%s: %s", shared.StatusFailInMasterData.String(), err.Error()),
 			})
-			return err
+			continue
 		}
 
 		if masterDataUsers.ID > 0 {
-			entityUsers, err := auth.Process(ctx, masterDataUsers.ID, masterDataUsers.NIK)
+			entityUsers, err := auth.Process(ctx, masterDataUsers.ID, masterDataUsers.Username)
 			if err != nil {
 				repository.UpdateStatus(ctx, repository.LogData{
 					NIK:         v.NIK,
 					Status:      int(shared.StatusFailInAuth),
-					Description: shared.StatusFailInAuth.String(),
+					Description: fmt.Sprintf("%s: %s", shared.StatusFailInAuth.String(), err.Error()),
 				})
-				return err
+				continue
 			}
 
 			if entityUsers != nil {
@@ -58,72 +97,82 @@ func worker(ctx context.Context, indexFrom, indexTo int) error {
 					UserID: fmt.Sprint(masterDataUsers.ID),
 				})
 				if err != nil {
+					log.Println(err.Error())
 					repository.UpdateStatus(ctx, repository.LogData{
 						NIK:         v.NIK,
 						Status:      int(shared.StatusFailInAuthz),
-						Description: shared.StatusFailInAuthz.String(),
+						Description: fmt.Sprintf("%s: %s", shared.StatusFailInAuthz.String(), err.Error()),
 					})
-					return err
+					continue
 				}
 
 				if len(usersData.Data.Users) > 0 {
 					err = setUserRoles(ctx, v.Role, usersData.Data.Users[0].UserID)
 					if err != nil {
+						log.Println(err)
 						repository.UpdateStatus(ctx, repository.LogData{
 							NIK:         v.NIK,
 							Status:      int(shared.StatusFailInAuthz),
-							Description: shared.StatusFailInAuthz.String(),
+							Description: fmt.Sprintf("%s: %s", shared.StatusFailInAuthz.String(), err.Error()),
 						})
-						return err
+						continue
 					}
 
 				} else {
-
 					err = authz.AuthzInsertUser(ctx, &authz.Authz{
 						UserID: fmt.Sprint(masterDataUsers.ID),
 					})
 					if err != nil {
+						log.Println(err.Error())
 						repository.UpdateStatus(ctx, repository.LogData{
 							NIK:         v.NIK,
 							Status:      int(shared.StatusFailInAuthz),
-							Description: shared.StatusFailInAuthz.String(),
+							Description: fmt.Sprintf("%s: %s", shared.StatusFailInAuthz.String(), err.Error()),
 						})
-						return err
+						continue
 					}
 
 					usersData, err = authz.AuthzGetUserID(ctx, &authz.Authz{
 						UserID: fmt.Sprint(masterDataUsers.ID),
 					})
 					if err != nil {
+						log.Println(err.Error())
 						repository.UpdateStatus(ctx, repository.LogData{
 							NIK:         v.NIK,
 							Status:      int(shared.StatusFailInAuthz),
-							Description: shared.StatusFailInAuthz.String(),
+							Description: fmt.Sprintf("%s: %s", shared.StatusFailInAuthz.String(), err.Error()),
 						})
-						return err
+						continue
 					}
 
 					if len(usersData.Data.Users) > 0 {
 						err = setUserRoles(ctx, v.Role, usersData.Data.Users[0].UserID)
 						if err != nil {
+							log.Println(err.Error())
 							repository.UpdateStatus(ctx, repository.LogData{
 								NIK:         v.NIK,
 								Status:      int(shared.StatusFailInAuthz),
-								Description: shared.StatusFailInAuthz.String(),
+								Description: fmt.Sprintf("%s: %s", shared.StatusFailInAuthz.String(), err.Error()),
 							})
-							return err
+							continue
 						}
 					}
 				}
+
+				repository.UpdateStatus(ctx, repository.LogData{
+					NIK:         v.NIK,
+					Status:      int(shared.StatusFinished),
+					Description: shared.StatusFinished.String(),
+				})
+			} else {
+				repository.UpdateStatus(ctx, repository.LogData{
+					NIK:         v.NIK,
+					Status:      int(shared.StatusFailInAuth),
+					Description: "user in auth not found",
+				})
 			}
-			repository.UpdateStatus(ctx, repository.LogData{
-				NIK:         v.NIK,
-				Status:      int(shared.StatusFinished),
-				Description: shared.StatusFinished.String(),
-			})
 		}
 	}
-	return nil
 }
 
 func setUserRoles(ctx context.Context, roleData string, userID string) error {
@@ -144,12 +193,14 @@ func setUserRoles(ctx context.Context, roleData string, userID string) error {
 			return err
 		}
 
-		if len(clientRoleData.Data.ClientRoles) > 1 {
-			clientRole = clientRoleData.Data.ClientRoles
-		} else {
-			clientRoleIDs = append(clientRoleIDs, clientRoleData.Data.ClientRoles[0].ID)
+		crLen := len(clientRoleData.Data.ClientRoles)
+		if crLen > 0 {
+			if crLen > 1 {
+				clientRole = clientRoleData.Data.ClientRoles
+			} else {
+				clientRoleIDs = append(clientRoleIDs, clientRoleData.Data.ClientRoles[0].ID)
+			}
 		}
-
 		key := fmt.Sprintf("hr+%s", role)
 		mRoleLocal[key] = role
 	}
