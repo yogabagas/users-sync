@@ -43,10 +43,7 @@ func Import() {
 			continue
 		}
 
-		parsedData, columnCount, err := parseRow(rows)
-		if err != nil {
-			log.Errorln(err)
-		}
+	log.Println(xlsx.GetRows(sheetOne))
 
 		if parsedData.Nik == "" || columnCount < 4 {
 			log.Print("end of file")
