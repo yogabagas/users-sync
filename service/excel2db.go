@@ -3,12 +3,13 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/xuri/excelize/v2"
 	"math"
 	"my-github/users-sync/repository"
 	"my-github/users-sync/shared"
 	"my-github/users-sync/taskworker"
 	"time"
+
+	"github.com/xuri/excelize/v2"
 
 	"gitlab.sicepat.tech/platform/golib/log"
 )
