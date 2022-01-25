@@ -122,7 +122,7 @@ func worker(ctx context.Context, indexFrom, indexTo, no int) {
 				}
 
 				if len(usersData.Data.Users) > 0 {
-					err = setUserRoles(ctx, v.Role, usersData.Data.Users[0].UserID, usersData.Data.Users[0].ID)
+					err = setUserRoles(ctx, v.Role, usersData.Data.Users[0].UserID)
 					if err != nil {
 						log.Println(err)
 						repository.UpdateStatus(ctx, repository.LogData{
@@ -161,7 +161,7 @@ func worker(ctx context.Context, indexFrom, indexTo, no int) {
 					}
 
 					if len(usersData.Data.Users) > 0 {
-						err = setUserRoles(ctx, v.Role, usersData.Data.Users[0].UserID, usersData.Data.Users[0].ID)
+						err = setUserRoles(ctx, v.Role, usersData.Data.Users[0].UserID)
 						if err != nil {
 							log.Println(err.Error())
 							repository.UpdateStatus(ctx, repository.LogData{
@@ -190,7 +190,7 @@ func worker(ctx context.Context, indexFrom, indexTo, no int) {
 	}
 }
 
-func setUserRoles(ctx context.Context, roleData string, userID string, userUUID string) error {
+func setUserRoles(ctx context.Context, roleData string, userID string) error {
 	var clientRoleIDs []string
 	var clientRole []authz.ClientRole
 
