@@ -35,7 +35,7 @@ func CreateOrUpdate(ctx context.Context, data *UserData) error {
 func ReadFromLocalDB(ctx context.Context, limit, skip int64) (resp []UserData, err error) {
 	collection := config.Database.Collection("users")
 
-	filter := bson.M{"status": 3}
+	filter := bson.M{"status": 0}
 	optionFind := options.Find().SetLimit(limit).SetSkip(skip)
 
 	cur, err := collection.Find(ctx, filter, optionFind)

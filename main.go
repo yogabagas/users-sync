@@ -24,7 +24,7 @@ func main() {
 
 	var wg sync.WaitGroup
 
-	wg.Add(1)
+	wg.Add(9)
 
 	go func() {
 		worker(ctx, 0, 300, 1)
@@ -53,6 +53,21 @@ func main() {
 
 	go func() {
 		worker(ctx, 1500, 300, 6)
+		wg.Done()
+	}()
+
+	go func() {
+		worker(ctx, 1800, 300, 7)
+		wg.Done()
+	}()
+
+	go func() {
+		worker(ctx, 2100, 300, 8)
+		wg.Done()
+	}()
+
+	go func() {
+		worker(ctx, 2400, 300, 9)
 		wg.Done()
 	}()
 
@@ -107,7 +122,7 @@ func worker(ctx context.Context, indexFrom, indexTo, no int) {
 				}
 
 				if len(usersData.Data.Users) > 0 {
-					err = setUserRoles(ctx, v.Role, usersData.Data.Users[0].UserID)
+					err = setUserRoles(ctx, v.Role, usersData.Data.Users[0].UserID, usersData.Data.Users[0].ID)
 					if err != nil {
 						log.Println(err)
 						repository.UpdateStatus(ctx, repository.LogData{
@@ -146,7 +161,7 @@ func worker(ctx context.Context, indexFrom, indexTo, no int) {
 					}
 
 					if len(usersData.Data.Users) > 0 {
-						err = setUserRoles(ctx, v.Role, usersData.Data.Users[0].UserID)
+						err = setUserRoles(ctx, v.Role, usersData.Data.Users[0].UserID, usersData.Data.Users[0].ID)
 						if err != nil {
 							log.Println(err.Error())
 							repository.UpdateStatus(ctx, repository.LogData{
@@ -168,21 +183,18 @@ func worker(ctx context.Context, indexFrom, indexTo, no int) {
 				repository.UpdateStatus(ctx, repository.LogData{
 					NIK:         v.NIK,
 					Status:      int(shared.StatusFailInAuth),
-					Description: "user in auth not found",
+					Description: fmt.Sprintf("%s: %s", shared.StatusFailInAuthz.String(), "user in auth not found"),
 				})
 			}
 		}
 	}
 }
 
-func setUserRoles(ctx context.Context, roleData string, userID string) error {
+func setUserRoles(ctx context.Context, roleData string, userID string, userUUID string) error {
 	var clientRoleIDs []string
 	var clientRole []authz.ClientRole
 
-	mRoleLocal := make(map[string]string)
-
 	roles := strings.Split(roleData, ",")
-
 	for _, role := range roles {
 		role = strings.TrimSpace(role)
 		clientRoleData, err := authz.AuthzGetClientRoleID(ctx, &authz.Authz{
@@ -201,14 +213,12 @@ func setUserRoles(ctx context.Context, roleData string, userID string) error {
 				clientRoleIDs = append(clientRoleIDs, clientRoleData.Data.ClientRoles[0].ID)
 			}
 		}
-		key := fmt.Sprintf("hr+%s", role)
-		mRoleLocal[key] = role
+
 	}
 
 	if len(clientRole) > 0 {
 		for _, cr := range clientRole {
-			key := fmt.Sprintf("%s+%s", cr.Client.Name, cr.Role.Name)
-			if _, exists := mRoleLocal[key]; exists {
+			if cr.Client.Name == "hr" {
 				clientRoleIDs = append(clientRoleIDs, cr.ID)
 			}
 		}

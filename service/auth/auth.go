@@ -38,6 +38,12 @@ func Process(ctx context.Context, userID int, username string) (*Entity, error) 
 		return nil, err
 	}
 
+	if userEntity != nil && !userEntity.Active {
+		if err = UserActivate(ctx, userEntity.ID); err != nil {
+			return nil, err
+		}
+	}
+
 	if userEntity != nil && userEntity.Attributes.NIK == "" {
 		err = updateEntityAttr(ctx, userEntity.ID, &UpdateNIK{NIK: username})
 		if err != nil {
@@ -116,6 +122,34 @@ func updateEntityAttr(ctx context.Context, entityID string, data *UpdateNIK) err
 
 	if resp.StatusCode != http.StatusNoContent {
 		return errors.New("update nik failed")
+	}
+
+	return nil
+}
+
+func UserActivate(ctx context.Context, entityID string) error {
+	url := fmt.Sprintf("https://api.sicepat.io/v1/auth/entity/%s/state", entityID)
+
+	req, err := http.NewRequest(http.MethodPut, url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", ctx.Value("token").(string))
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		return errors.New("invalid token")
+	}
+
+	if resp.StatusCode != http.StatusNoContent {
+		return errors.New("user activation failed")
 	}
 
 	return nil

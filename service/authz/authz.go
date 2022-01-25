@@ -85,10 +85,31 @@ type (
 		ClientID    string   `json:"-"`
 	}
 
-	// UserRoles struct {
-	// 	BranchID     string `json:"branch_id"`
-	// 	ClientRoleID string `json:"client_role_id"`
-	// }
+	ClientResp struct {
+		Name string `json:"name"`
+	}
+
+	RoleResp struct {
+		Name string `json:"name"`
+	}
+
+	BranchResp struct {
+		Name string `json:"name"`
+	}
+	Permission struct {
+		ID         string     `json:"id"`
+		Client     ClientResp `json:"client"`
+		Role       RoleResp   `json:"role"`
+		BranchResp BranchResp `json:"branch_resp"`
+	}
+
+	PermissionResp struct {
+		Permissions []Permission `json:"permissions"`
+	}
+
+	UserRoleResponse struct {
+		Data PermissionResp `json:"data"`
+	}
 )
 
 const (
@@ -174,6 +195,26 @@ func AuthzInsertUser(ctx context.Context, req *Authz) error {
 	return nil
 }
 
+func AuthzGetUserRoles(ctx context.Context, userID string) (data UserRoleResponse, err error) {
+	client := &http.Client{}
+
+	url := fmt.Sprintf("%s/users/%s/roles", endpointAuthzV2Prod, userID)
+	httpReq, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		log.Println("ERR", err.Error())
+		return
+	}
+	httpReq.Header.Set("Authorization", ctx.Value("token").(string))
+
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+	err = decodeResponse(resp.Body, &data)
+	return
+}
+
 func AuthzInsertUserRoles(ctx context.Context, clientRoleIDs []string, userID string) error {
 
 	client := &http.Client{}
@@ -205,8 +246,5 @@ func AuthzInsertUserRoles(ctx context.Context, clientRoleIDs []string, userID st
 }
 
 func decodeResponse(b io.Reader, v interface{}) error {
-	if err := json.NewDecoder(b).Decode(&v); err != nil {
-		return err
-	}
-	return nil
+	return json.NewDecoder(b).Decode(&v)
 }
