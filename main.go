@@ -183,7 +183,7 @@ func worker(ctx context.Context, indexFrom, indexTo, no int) {
 				repository.UpdateStatus(ctx, repository.LogData{
 					NIK:         v.NIK,
 					Status:      int(shared.StatusFailInAuth),
-					Description: fmt.Sprintf("%s: %s", shared.StatusFailInAuthz.String(), "user in auth not found"),
+					Description: fmt.Sprintf("%s: %s", shared.StatusFailInAuth.String(), "user in auth not found"),
 				})
 			}
 		}
