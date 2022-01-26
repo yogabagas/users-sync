@@ -24,50 +24,35 @@ func main() {
 
 	var wg sync.WaitGroup
 
-	wg.Add(9)
+	wg.Add(6)
 
 	go func() {
-		worker(ctx, 0, 300, 1)
+		worker(ctx, 9800, 500, 1)
 		wg.Done()
 	}()
 
 	go func() {
-		worker(ctx, 300, 300, 2)
+		worker(ctx, 10300, 500, 2)
 		wg.Done()
 	}()
 
 	go func() {
-		worker(ctx, 600, 300, 3)
+		worker(ctx, 10800, 500, 3)
 		wg.Done()
 	}()
 
 	go func() {
-		worker(ctx, 900, 300, 4)
+		worker(ctx, 11300, 500, 4)
 		wg.Done()
 	}()
 
 	go func() {
-		worker(ctx, 1200, 300, 5)
+		worker(ctx, 11800, 500, 5)
 		wg.Done()
 	}()
 
 	go func() {
-		worker(ctx, 1500, 300, 6)
-		wg.Done()
-	}()
-
-	go func() {
-		worker(ctx, 1800, 300, 7)
-		wg.Done()
-	}()
-
-	go func() {
-		worker(ctx, 2100, 300, 8)
-		wg.Done()
-	}()
-
-	go func() {
-		worker(ctx, 2400, 300, 9)
+		worker(ctx, 12300, 500, 6)
 		wg.Done()
 	}()
 
@@ -96,7 +81,7 @@ func worker(ctx context.Context, indexFrom, indexTo, no int) {
 		}
 
 		if masterDataUsers.ID > 0 {
-			entityUsers, err := auth.Process(ctx, masterDataUsers.ID, masterDataUsers.Username)
+			entityUsers, err := auth.Process(ctx, masterDataUsers.ID, masterDataUsers.NIK, masterDataUsers.Username)
 			if err != nil {
 				repository.UpdateStatus(ctx, repository.LogData{
 					NIK:         v.NIK,
@@ -107,7 +92,7 @@ func worker(ctx context.Context, indexFrom, indexTo, no int) {
 			}
 
 			if entityUsers != nil {
-
+				log.Printf("auth processing nik:%s userID:%d username:%s \n", masterDataUsers.NIK, masterDataUsers.ID, masterDataUsers.Username)
 				usersData, err := authz.AuthzGetUserID(ctx, &authz.Authz{
 					UserID: fmt.Sprint(masterDataUsers.ID),
 				})
@@ -181,9 +166,10 @@ func worker(ctx context.Context, indexFrom, indexTo, no int) {
 				})
 			} else {
 				repository.UpdateStatus(ctx, repository.LogData{
-					NIK:         v.NIK,
-					Status:      int(shared.StatusFailInAuth),
-					Description: fmt.Sprintf("%s: %s", shared.StatusFailInAuth.String(), "user in auth not found"),
+					NIK:    v.NIK,
+					Status: int(shared.StatusFailInAuth),
+					Description: fmt.Sprintf("%s: %s (NIK: %s USERNAME: %s)", shared.StatusFailInAuth.String(), "user in auth not found",
+						v.NIK, masterDataUsers.Username),
 				})
 			}
 		}

@@ -32,7 +32,7 @@ type UpdateNIK struct {
 	NIK string `json:"nik"`
 }
 
-func Process(ctx context.Context, userID int, username string) (*Entity, error) {
+func Process(ctx context.Context, userID int, nik string, username string) (*Entity, error) {
 	userEntity, err := getEntity(ctx, userID, username)
 	if err != nil {
 		return nil, err
@@ -44,8 +44,8 @@ func Process(ctx context.Context, userID int, username string) (*Entity, error) 
 		}
 	}
 
-	if userEntity != nil && userEntity.Attributes.NIK == "" {
-		err = updateEntityAttr(ctx, userEntity.ID, &UpdateNIK{NIK: username})
+	if userEntity != nil {
+		err = updateEntityAttr(ctx, userEntity.ID, &UpdateNIK{NIK: nik})
 		if err != nil {
 			return nil, err
 		}
@@ -135,6 +135,7 @@ func UserActivate(ctx context.Context, entityID string) error {
 		return err
 	}
 	req.Header.Set("Authorization", ctx.Value("token").(string))
+	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
