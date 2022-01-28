@@ -28,8 +28,9 @@ type EntityData struct {
 	Data []Entity `json:"data"`
 }
 
-type UpdateNIK struct {
-	NIK string `json:"nik"`
+type UpdateAttr struct {
+	UserID int    `json:"user_id"`
+	NIK    string `json:"nik"`
 }
 
 func Process(ctx context.Context, userID int, nik string, username string) (*Entity, error) {
@@ -45,7 +46,10 @@ func Process(ctx context.Context, userID int, nik string, username string) (*Ent
 	}
 
 	if userEntity != nil {
-		err = updateEntityAttr(ctx, userEntity.ID, &UpdateNIK{NIK: nik})
+		err = updateEntityAttr(ctx, userEntity.ID, &UpdateAttr{
+			NIK:    nik,
+			UserID: userID,
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -55,7 +59,8 @@ func Process(ctx context.Context, userID int, nik string, username string) (*Ent
 }
 
 func getEntity(ctx context.Context, userID int, username string) (*Entity, error) {
-	url := fmt.Sprintf("https://api.sicepat.io/v1/auth/entity?attributes.user_id=%d", userID)
+	username = "%27" + username + "%27"
+	url := fmt.Sprintf("https://api.sicepat.io/v1/auth/entity?attributes.userpass_id=%s", username)
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
@@ -90,15 +95,13 @@ func getEntity(ctx context.Context, userID int, username string) (*Entity, error
 	}
 
 	for _, v := range entity {
-		if v.Attributes.UserPassID == username {
-			return &v, nil
-		}
+		return &v, nil
 	}
 
 	return nil, nil
 }
 
-func updateEntityAttr(ctx context.Context, entityID string, data *UpdateNIK) error {
+func updateEntityAttr(ctx context.Context, entityID string, data *UpdateAttr) error {
 	url := fmt.Sprintf("https://api.sicepat.io/v1/auth/entity/%s/attributes", entityID)
 
 	req, err := http.NewRequest(http.MethodPut, url, ConvertStructToIOReader(data))

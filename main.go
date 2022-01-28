@@ -24,35 +24,15 @@ func main() {
 
 	var wg sync.WaitGroup
 
-	wg.Add(6)
+	wg.Add(2)
 
 	go func() {
-		worker(ctx, 9800, 500, 1)
+		worker(ctx, 0, 60, 1)
 		wg.Done()
 	}()
 
 	go func() {
-		worker(ctx, 10300, 500, 2)
-		wg.Done()
-	}()
-
-	go func() {
-		worker(ctx, 10800, 500, 3)
-		wg.Done()
-	}()
-
-	go func() {
-		worker(ctx, 11300, 500, 4)
-		wg.Done()
-	}()
-
-	go func() {
-		worker(ctx, 11800, 500, 5)
-		wg.Done()
-	}()
-
-	go func() {
-		worker(ctx, 12300, 500, 6)
+		worker(ctx, 60, 60, 2)
 		wg.Done()
 	}()
 
