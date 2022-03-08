@@ -24,15 +24,20 @@ func main() {
 
 	var wg sync.WaitGroup
 
-	wg.Add(2)
+	wg.Add(3)
 
 	go func() {
-		worker(ctx, 0, 60, 1)
+		worker(ctx, 0, 50, 1)
 		wg.Done()
 	}()
 
 	go func() {
-		worker(ctx, 60, 60, 2)
+		worker(ctx, 50, 50, 2)
+		wg.Done()
+	}()
+
+	go func() {
+		worker(ctx, 100, 60, 3)
 		wg.Done()
 	}()
 
@@ -72,7 +77,7 @@ func worker(ctx context.Context, indexFrom, indexTo, no int) {
 			}
 
 			if entityUsers != nil {
-				log.Printf("auth processing nik:%s userID:%d username:%s \n", masterDataUsers.NIK, masterDataUsers.ID, masterDataUsers.Username)
+				log.Printf("authz processing nik:%s userID:%d username:%s \n", masterDataUsers.NIK, masterDataUsers.ID, masterDataUsers.Username)
 				usersData, err := authz.AuthzGetUserID(ctx, &authz.Authz{
 					UserID: fmt.Sprint(masterDataUsers.ID),
 				})

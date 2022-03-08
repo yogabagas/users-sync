@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 )
 
@@ -45,7 +46,8 @@ func Process(ctx context.Context, userID int, nik string, username string) (*Ent
 		}
 	}
 
-	if userEntity != nil {
+	if userEntity != nil && userEntity.Attributes.NIK == "" {
+		log.Printf("update attribute userID:%d nik:%s \n", userID, nik)
 		err = updateEntityAttr(ctx, userEntity.ID, &UpdateAttr{
 			NIK:    nik,
 			UserID: userID,
