@@ -78,11 +78,14 @@ type (
 
 type (
 	InputUserRole struct {
-		UserID      string   `json:"user_id"`
-		Branch      string   `json:"branch_name"`
-		Roles       []string `json:"roles"`
-		ClientRoles []string `json:"client_roles"`
-		ClientID    string   `json:"-"`
+		UserID        string   `json:"user_id"`
+		Branch        string   `json:"branch"`
+		UserType      string   `json:"user_type"`
+		ClientRoleIDs []string `json:"client_role_ids"`
+	}
+
+	InsertUserRoleRequest struct {
+		Input InputUserRole `json:"input"`
 	}
 
 	ClientResp struct {
@@ -113,7 +116,7 @@ type (
 )
 
 const (
-	clientApp              = "hr"
+	clientApp              = "masterdata"
 	endpointAuthzV2Staging = "https://api.s.sicepat.io/v2/authz/management"
 	endpointAuthzV2Prod    = "https://api.sicepat.io/v2/authz/management"
 	endpointAuthzV1Staging = "https://api.s.sicepat.io/v1/authz"
@@ -124,7 +127,7 @@ func AuthzGetUserID(ctx context.Context, req *Authz) (userData UserData, err err
 
 	client := &http.Client{}
 
-	httpReq, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/users?userID=%s", endpointAuthzV2Prod, req.UserID), nil)
+	httpReq, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/users?userID=%s", endpointAuthzV2Staging, req.UserID), nil)
 	if err != nil {
 		return
 	}
@@ -179,7 +182,7 @@ func AuthzInsertUser(ctx context.Context, req *Authz) error {
 	toByte, _ := json.Marshal(request)
 
 	requestBody := bytes.NewBuffer(toByte)
-	url := fmt.Sprintf("%s/users", endpointAuthzV2Prod)
+	url := fmt.Sprintf("%s/users", endpointAuthzV2Staging)
 	httpReq, err := http.NewRequest(http.MethodPost, url, requestBody)
 	if err != nil {
 		return err
@@ -215,21 +218,24 @@ func AuthzGetUserRoles(ctx context.Context, userID string) (data UserRoleRespons
 	return
 }
 
-func AuthzInsertUserRoles(ctx context.Context, clientRoleIDs []string, userID string) error {
+func AuthzInsertUserRoles(ctx context.Context, userID string) error {
 
 	client := &http.Client{}
 
-	request := &InputUserRole{
-		UserID:      userID,
-		ClientRoles: clientRoleIDs,
-	}
+	request := InsertUserRoleRequest{
+		Input: InputUserRole{
+			UserID:        userID,
+			Branch:        "Default",
+			UserType:      "internal",
+			ClientRoleIDs: []string{"a067a2b1-f652-469b-873b-9cd8ab020931"},
+		}}
 
 	log.Printf("REQ: %+v", request)
 
 	toByte, _ := json.Marshal(request)
 
-	url := fmt.Sprintf("%s/user-roles/assign", endpointAuthzV1Prod)
-	httpReq, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(toByte))
+	url := fmt.Sprintf("%s/user-roles", endpointAuthzV2Prod)
+	httpReq, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(toByte))
 	if err != nil {
 		log.Println("ERR", err.Error())
 		return err
@@ -242,6 +248,13 @@ func AuthzInsertUserRoles(ctx context.Context, clientRoleIDs []string, userID st
 	}
 	defer resp.Body.Close()
 
+	var res interface{}
+	err = decodeResponse(resp.Body, &res)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("%+v", res)
 	return nil
 }
 

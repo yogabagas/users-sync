@@ -22,7 +22,7 @@ type ExcelData struct {
 }
 
 func Import() {
-	xlsx, err := excelize.OpenFile("./excel/2022-03-08/HR Appraisal 08032022.xlsx")
+	xlsx, err := excelize.OpenFile("./excel/2022-04-07/Req Masterdata Userrole.xlsx")
 	if err != nil {
 		log.Println(err)
 	}
