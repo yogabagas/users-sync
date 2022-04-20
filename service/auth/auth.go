@@ -30,39 +30,33 @@ type EntityData struct {
 }
 
 type UpdateAttr struct {
-	UserID int    `json:"user_id"`
-	NIK    string `json:"nik"`
+	ClientRoleIDs []string `json:"client_role_ids"`
 }
 
-func Process(ctx context.Context, userID int, nik string, username string) (*Entity, error) {
-	userEntity, err := getEntity(ctx, userID, username)
+func Process(ctx context.Context, userID, userType string, clientRoleIDs []string) error {
+	userEntity, err := getEntity(ctx, userID, userType)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if userEntity != nil && !userEntity.Active {
-		if err = UserActivate(ctx, userEntity.ID); err != nil {
-			return nil, err
-		}
-	}
-
-	if userEntity != nil && userEntity.Attributes.NIK == "" {
-		log.Printf("update attribute userID:%d nik:%s \n", userID, nik)
-		err = updateEntityAttr(ctx, userEntity.ID, &UpdateAttr{
-			NIK:    nik,
-			UserID: userID,
+	if userEntity != nil {
+		log.Printf("update attribute userID:%s", userID)
+		err = updateEntityAttr(ctx, userEntity.ID, userType, &UpdateAttr{
+			ClientRoleIDs: clientRoleIDs,
 		})
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	return userEntity, nil
+	return nil
 }
 
-func getEntity(ctx context.Context, userID int, username string) (*Entity, error) {
-	username = "%27" + username + "%27"
-	url := fmt.Sprintf("https://api.sicepat.io/v1/auth/entity?attributes.userpass_id=%s", username)
+func getEntity(ctx context.Context, userID, userType string) (*Entity, error) {
+	url := fmt.Sprintf("https://api.sicepat.io/v1/auth/entity?attributes.user_id=%s", userID)
+	if userType == "external" {
+		url = fmt.Sprintf("https://auth-ext.sicepat.io/v1/auth/entity?attributes.user_id=%s", userID)
+	}
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
@@ -103,8 +97,11 @@ func getEntity(ctx context.Context, userID int, username string) (*Entity, error
 	return nil, nil
 }
 
-func updateEntityAttr(ctx context.Context, entityID string, data *UpdateAttr) error {
+func updateEntityAttr(ctx context.Context, entityID string, userType string, data *UpdateAttr) error {
 	url := fmt.Sprintf("https://api.sicepat.io/v1/auth/entity/%s/attributes", entityID)
+	if userType == "external" {
+		url = fmt.Sprintf("https://auth-ext.sicepat.io/v1/auth/entity/%s/attributes", entityID)
+	}
 
 	req, err := http.NewRequest(http.MethodPut, url, ConvertStructToIOReader(data))
 	if err != nil {

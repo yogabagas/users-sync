@@ -106,8 +106,14 @@ type (
 		BranchResp BranchResp `json:"branch_resp"`
 	}
 
+	ReadUserRolesResponse struct {
+		UserID        string   `bson:"userID" json:"user_id"`
+		Type          string   `bson:"type" json:"type"`
+		ClientRoleIDs []string `bson:"clientRoleIDs" json:"client_role_ids"`
+	}
+
 	PermissionResp struct {
-		Permissions []Permission `json:"permissions"`
+		Users []ReadUserRolesResponse `json:"users"`
 	}
 
 	UserRoleResponse struct {
@@ -198,10 +204,10 @@ func AuthzInsertUser(ctx context.Context, req *Authz) error {
 	return nil
 }
 
-func AuthzGetUserRoles(ctx context.Context, userID string) (data UserRoleResponse, err error) {
+func AuthzGetUserRoles(ctx context.Context, limit, offset int) (data UserRoleResponse, err error) {
 	client := &http.Client{}
 
-	url := fmt.Sprintf("%s/users/%s/roles", endpointAuthzV2Prod, userID)
+	url := fmt.Sprintf("%s/user-roles?limit=%d&offset=%d", endpointAuthzV2Prod, limit, offset)
 	httpReq, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		log.Println("ERR", err.Error())
