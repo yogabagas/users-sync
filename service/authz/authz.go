@@ -7,17 +7,16 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 	"time"
 
 	"gitlab.sicepat.tech/platform/golib/log"
 )
 
 type Authz struct {
-	UserUUID   string
-	UserID     string
-	ClientName string
-	RoleName   string
+	UserUUID string
+	UserID   string
+	ClientID string
+	RoleID   string
 }
 
 type (
@@ -77,22 +76,25 @@ type (
 )
 
 type (
+	UpdateUserRoleRequest struct {
+		Input InputUserRole `json:"input"`
+	}
 	InputUserRole struct {
 		UserID        string   `json:"user_id"`
-		Branch        string   `json:"branch"`
 		UserType      string   `json:"user_type"`
+		Branch        string   `json:"branch"`
 		ClientRoleIDs []string `json:"client_role_ids"`
-	}
-
-	InsertUserRoleRequest struct {
-		Input InputUserRole `json:"input"`
+		IsActive      bool     `json:"is_active"`
+		Upsert        bool     `json:"upsert"`
 	}
 
 	ClientResp struct {
+		ID   string `json:"id"`
 		Name string `json:"name"`
 	}
 
 	RoleResp struct {
+		ID   string `json:"id"`
 		Name string `json:"name"`
 	}
 
@@ -115,8 +117,47 @@ type (
 	}
 )
 
+type (
+	Role struct {
+		ID        string    `bson:"_id" json:"id"`
+		RoleID    int       `bson:"roleID" json:"role_id"`
+		RoleName  string    `bson:"roleName" json:"role_name"`
+		IsDeleted bool      `bson:"isDeleted" json:"is_deleted"`
+		CreatedAt time.Time `bson:"createdAt" json:"created_at"`
+		CreatedBy string    `bson:"createdBy" json:"created_by"`
+		UpdatedAt time.Time `bson:"updatedAt" json:"updated_at"`
+		UpdatedBy string    `bson:"updatedBy" json:"updated_by"`
+		IsActive  bool      `bson:"isActive" json:"is_active"`
+	}
+	ListRoleResponse struct {
+		Roles []Role `json:"roles"`
+	}
+	ListRoleData struct {
+		Data ListRoleResponse `json:"data"`
+	}
+)
+
+type (
+	Client struct {
+		ID        string    `bson:"_id" json:"id"`
+		Name      string    `bson:"name" json:"name"`
+		IsDeleted bool      `bson:"isDeleted" json:"is_deleted"`
+		CreatedAt time.Time `bson:"createdAt" json:"created_at"`
+		CreatedBy string    `bson:"createdBy" json:"created_by"`
+		UpdatedAt time.Time `bson:"updatedAt" json:"updated_at"`
+		UpdatedBy string    `bson:"updatedBy" json:"updated_by"`
+		IsActive  bool      `bson:"isActive" json:"is_active"`
+	}
+	ListClientResponse struct {
+		Clients []Client `json:"clients"`
+	}
+	ListClientData struct {
+		Data ListClientResponse `json:"data"`
+	}
+)
+
 const (
-	clientApp              = "masterdata"
+	clientApp              = "hr"
 	endpointAuthzV2Staging = "https://api.s.sicepat.io/v2/authz/management"
 	endpointAuthzV2Prod    = "https://api.sicepat.io/v2/authz/management"
 	endpointAuthzV1Staging = "https://api.s.sicepat.io/v1/authz"
@@ -127,7 +168,7 @@ func AuthzGetUserID(ctx context.Context, req *Authz) (userData UserData, err err
 
 	client := &http.Client{}
 
-	httpReq, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/users?userID=%s", endpointAuthzV2Staging, req.UserID), nil)
+	httpReq, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/users?userID=%s", endpointAuthzV2Prod, req.UserID), nil)
 	if err != nil {
 		return
 	}
@@ -149,8 +190,7 @@ func AuthzGetClientRoleID(ctx context.Context, req *Authz) (clientRoleData Clien
 
 	client := &http.Client{}
 
-	req.RoleName = strings.ReplaceAll(req.RoleName, " ", "%20")
-	url := fmt.Sprintf("%s/client-roles?client=%s&role=%s", endpointAuthzV2Prod, clientApp, req.RoleName)
+	url := fmt.Sprintf("%s/client-roles?clientID=%s&roleID=%s", endpointAuthzV2Prod, req.ClientID, req.RoleID)
 	httpReq, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return
@@ -182,7 +222,7 @@ func AuthzInsertUser(ctx context.Context, req *Authz) error {
 	toByte, _ := json.Marshal(request)
 
 	requestBody := bytes.NewBuffer(toByte)
-	url := fmt.Sprintf("%s/users", endpointAuthzV2Staging)
+	url := fmt.Sprintf("%s/users", endpointAuthzV2Prod)
 	httpReq, err := http.NewRequest(http.MethodPost, url, requestBody)
 	if err != nil {
 		return err
@@ -218,24 +258,68 @@ func AuthzGetUserRoles(ctx context.Context, userID string) (data UserRoleRespons
 	return
 }
 
-func AuthzInsertUserRoles(ctx context.Context, userID string) error {
+func AuthzGetRole(ctx context.Context, roleName string) (data ListRoleData, err error) {
+	client := &http.Client{}
+
+	url := fmt.Sprintf("%s/roles?name=%s&isActive=true", endpointAuthzV2Prod, roleName)
+	httpReq, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		log.Println("ERR", err.Error())
+		return
+	}
+	httpReq.Header.Set("Authorization", ctx.Value("token").(string))
+
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	err = decodeResponse(resp.Body, &data)
+	return
+}
+
+func AuthzGetClient(ctx context.Context, clientName string) (data ListClientData, err error) {
+	client := &http.Client{}
+
+	url := fmt.Sprintf("%s/clients?name=%s&isActive=true", endpointAuthzV2Prod, clientName)
+	httpReq, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		log.Println("ERR", err.Error())
+		return
+	}
+	httpReq.Header.Set("Authorization", ctx.Value("token").(string))
+
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+	err = decodeResponse(resp.Body, &data)
+	return
+}
+
+func AuthzUpdateUserRoles(ctx context.Context, clientRoleIDs []string, userID string) error {
 
 	client := &http.Client{}
 
-	request := InsertUserRoleRequest{
+	request := &UpdateUserRoleRequest{
 		Input: InputUserRole{
 			UserID:        userID,
-			Branch:        "Default",
 			UserType:      "internal",
-			ClientRoleIDs: []string{"a067a2b1-f652-469b-873b-9cd8ab020931"},
-		}}
+			Branch:        "Default",
+			ClientRoleIDs: clientRoleIDs,
+			IsActive:      true,
+			Upsert:        false,
+		},
+	}
 
 	log.Printf("REQ: %+v", request)
 
 	toByte, _ := json.Marshal(request)
 
 	url := fmt.Sprintf("%s/user-roles", endpointAuthzV2Prod)
-	httpReq, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(toByte))
+	httpReq, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(toByte))
 	if err != nil {
 		log.Println("ERR", err.Error())
 		return err
@@ -248,13 +332,6 @@ func AuthzInsertUserRoles(ctx context.Context, userID string) error {
 	}
 	defer resp.Body.Close()
 
-	var res interface{}
-	err = decodeResponse(resp.Body, &res)
-	if err != nil {
-		return err
-	}
-
-	log.Printf("%+v", res)
 	return nil
 }
 

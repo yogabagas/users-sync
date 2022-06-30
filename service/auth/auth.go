@@ -11,11 +11,12 @@ import (
 )
 
 type EntityAttr struct {
-	DisplayName string `json:"display_name"`
-	Email       string `json:"email"`
-	UserID      int    `json:"user_id"`
-	UserPassID  string `json:"userpass_id"`
-	NIK         string `json:"nik"`
+	DisplayName   string   `json:"display_name"`
+	Email         string   `json:"email"`
+	UserID        int      `json:"user_id"`
+	UserPassID    string   `json:"userpass_id"`
+	NIK           string   `json:"nik"`
+	ClientRoleIDs []string `json:"client_role_ids"`
 }
 
 type Entity struct {
@@ -30,8 +31,7 @@ type EntityData struct {
 }
 
 type UpdateAttr struct {
-	UserID int    `json:"user_id"`
-	NIK    string `json:"nik"`
+	NIK string `json:"nik"`
 }
 
 func Process(ctx context.Context, userID int, nik string, username string) (*Entity, error) {
@@ -49,8 +49,7 @@ func Process(ctx context.Context, userID int, nik string, username string) (*Ent
 	if userEntity != nil && userEntity.Attributes.NIK == "" {
 		log.Printf("update attribute userID:%d nik:%s \n", userID, nik)
 		err = updateEntityAttr(ctx, userEntity.ID, &UpdateAttr{
-			NIK:    nik,
-			UserID: userID,
+			NIK: nik,
 		})
 		if err != nil {
 			return nil, err
