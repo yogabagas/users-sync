@@ -21,7 +21,7 @@ type User struct {
 	Name     string `json:"name"`
 	Email    string `json:"email"`
 	NIK      string `json:"nik"`
-	Username string `json:""`
+	Username string `json:"username"`
 }
 
 type UserResponse struct {
