@@ -123,7 +123,7 @@ func updateEntityAttr(ctx context.Context, entityID string, userType string, dat
 	}
 
 	if resp.StatusCode != http.StatusNoContent {
-		return errors.New("update nik failed")
+		return errors.New("update client role failed")
 	}
 
 	return nil
